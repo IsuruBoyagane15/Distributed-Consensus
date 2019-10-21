@@ -14,6 +14,7 @@ public abstract class ConsensusApplication {
         this.kafkaServerAddress = kafkaServerAddress;
     }
 
+
     public abstract boolean onReceiving(Value evaluationOutput);
 
     public abstract void commitAgreedValue(Value evaluationOutput);
@@ -46,4 +47,5 @@ public abstract class ConsensusApplication {
         return kafkaServerAddress;
     }
 
+//    public abstract boolean participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode);
 }
