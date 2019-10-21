@@ -8,7 +8,6 @@ import java.util.UUID;
 
 public class LeaderCandidate extends ConsensusApplication{
     private static final Logger LOGGER = LoggerFactory.getLogger(LeaderCandidate.class);
-    private boolean threads;
     private Thread listeningThread;
     private String electedLeader;
 
@@ -18,7 +17,6 @@ public class LeaderCandidate extends ConsensusApplication{
         super(nodeId, runtimeJsCode, evaluationJsCode, kafkaServerAddress, kafkaTopic);
         this.listeningThread = null;
         this.electedLeader = null;
-        this.threads = false;
     }
 
     public String getElectedLeader() {
@@ -33,16 +31,19 @@ public class LeaderCandidate extends ConsensusApplication{
     @Override
     public void commitAgreedValue(Value value) {
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
-//        System.out.println(electedLeader);
-//        System.out.println(value.getMember("value").asString());
         if (this.electedLeader == null){
             this.electedLeader = value.getMember("value").toString();
+            System.out.println("CURRENT LEADER IS : " + getElectedLeader() + " : TIME : " + java.time.LocalTime.now() + "\n" );
             if (this.electedLeader.equals(this.getNodeId())){
+                System.out.println("I STARTED SENDING HB :"  + "TIME : " + java.time.LocalTime.now() + "\n" );
                 this.startHeartbeatSender();
 
             }
             else{
                 this.startHeartbeatListener();
+                System.out.println("I STARTED LISTENING HB :"  + "TIME : " + java.time.LocalTime.now() + "\n" );
+                System.out.println("CURRENT LEADER  : " + getElectedLeader() + " SENT HB : TIME : " + java.time.LocalTime.now() + "\n" );
+
             }
         }
 
@@ -80,7 +81,7 @@ public class LeaderCandidate extends ConsensusApplication{
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
             consensusFramework.writeACommand("result.value = \"" + getNodeId() + "\";");
             try {
-                Thread.sleep(1000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 LOGGER.error("LEADER : " + getNodeId() + " is interrupted.");
                 e.printStackTrace();
@@ -90,8 +91,8 @@ public class LeaderCandidate extends ConsensusApplication{
 
     public void startHeartbeatListener(){
         this.listeningThread = new Thread(new HeartbeatListener(this));
+        this.listeningThread.setName("THREAD_OF_" + getNodeId()+ "_LISTENING_TO_" + getElectedLeader());
         this.listeningThread.start();
-//        System.out.println("follower started to listen leader "  + this.electedLeader);
         LOGGER.info("FOLLOWER :" + getNodeId() + " started listening to heartbeats.");
     }
 
@@ -113,7 +114,7 @@ public class LeaderCandidate extends ConsensusApplication{
                                         "result",
                 kafkaServerAddress, kafkaTopic);
 
-        System.out.println("My id is " + leaderCandidate.getNodeId());
+        System.out.println("My id is " + leaderCandidate.getNodeId() + "\n");
         DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(leaderCandidate);
         consensusFramework.start();
         int nodeRank = (int)(1 + Math.random()*100);
@@ -127,10 +128,8 @@ public class LeaderCandidate extends ConsensusApplication{
     }
 
     public void startNewRound(){
-        this.listeningThread = null;
         String olderLeader = this.electedLeader;
         this.electedLeader = null;
-        this.threads = false;
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         dcf.writeACommand("result = {consensus:false, value:null};nodeRanks = nodeRanks.filter(function( obj ) {" +
                         "    return obj.client !== \"" + olderLeader + "\";" +

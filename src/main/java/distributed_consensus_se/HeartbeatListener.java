@@ -14,13 +14,12 @@ public class HeartbeatListener extends Thread {
 
     public void run() {
         try {
-            System.out.println("asked to wait : leader is" + follower.getElectedLeader() + " TIME :" + java.time.LocalTime.now() + " thread : " + Thread.currentThread().getId());
+            System.out.println("WILL ELECT NEW LEADER OVER " + follower.getElectedLeader() + " IN 8S. : TIME :" + java.time.LocalTime.now() + " thread : " + Thread.currentThread().getName() + "\n");
             Thread.sleep(8000);
-            System.out.println(follower.getElectedLeader() + " leader failed. TIME : " + java.time.LocalTime.now());
+            System.out.println(follower.getElectedLeader() + " FAILED. TIME : " + java.time.LocalTime.now());
             LOGGER.info("Leader failed.");
             follower.startNewRound();
         } catch (InterruptedException e) {
-            System.out.println(follower.getElectedLeader() + " sent the HB : TIME :" + java.time.LocalTime.now());
             run();
         }
     }
