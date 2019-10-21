@@ -42,12 +42,12 @@ public class LeaderCandidate extends ConsensusApplication{
             else{
                 this.startHeartbeatListener();
                 System.out.println("I STARTED LISTENING HB :"  + "TIME : " + java.time.LocalTime.now() + "\n" );
-                System.out.println("CURRENT LEADER  : " + getElectedLeader() + " SENT HB : TIME : " + java.time.LocalTime.now() + "\n" );
 
             }
         }
 
         else if (value.getMember("value").asString().equals(this.electedLeader) && !this.electedLeader.equals(getNodeId())){
+            System.out.println("CURRENT LEADER  : " + getElectedLeader() + " SENT HB : TIME : " + java.time.LocalTime.now() + "\n" );
             this.listeningThread.interrupt();
         }
         else{
@@ -130,6 +130,7 @@ public class LeaderCandidate extends ConsensusApplication{
     public void startNewRound(){
         String olderLeader = this.electedLeader;
         this.electedLeader = null;
+        this.listeningThread = null;
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         dcf.writeACommand("result = {consensus:false, value:null};nodeRanks = nodeRanks.filter(function( obj ) {" +
                         "    return obj.client !== \"" + olderLeader + "\";" +
