@@ -14,7 +14,7 @@ public class HeartbeatListener extends Thread {
 
     public void run() {
         try {
-            Thread.sleep(8000);
+            Thread.sleep(4000);
             LOGGER.info("Leader failed.");
             follower.startNewRound();
         } catch (InterruptedException e) {

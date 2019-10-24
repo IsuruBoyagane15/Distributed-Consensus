@@ -18,6 +18,11 @@ public class TwoPhaseCommitMember extends ConsensusApplication {
     }
 
     @Override
+    public void handleHeartbeat(String sender) {
+
+    }
+
+    @Override
     public boolean onReceiving(Value evaluationOutput) {
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         if (evaluationOutput.getMember("coordinatorElected").toString().equals(this.getNodeId())){

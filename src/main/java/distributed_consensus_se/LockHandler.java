@@ -10,6 +10,11 @@ public class LockHandler extends ConsensusApplication{
     }
 
     @Override
+    public void handleHeartbeat(String sender) {
+
+    }
+
+    @Override
     public boolean onReceiving(Value value) {
         return value.asBoolean();
     }

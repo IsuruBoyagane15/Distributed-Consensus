@@ -19,6 +19,15 @@ public class LeaderCandidate extends ConsensusApplication{
         this.electedLeader = null;
     }
 
+    @Override
+    public void handleHeartbeat(String sender) {
+        if (sender.equals(this.electedLeader) && !this.electedLeader.equals(getNodeId())) {
+//            System.out.println("GOT HB" );
+            System.out.println("GOT HB FROM " + this.electedLeader);
+            this.listeningThread.interrupt();
+        }
+    }
+
     public String getElectedLeader() {
         return electedLeader;
     }
@@ -32,7 +41,9 @@ public class LeaderCandidate extends ConsensusApplication{
     public void commitAgreedValue(Value value) {
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         if (this.electedLeader == null){
+
             this.electedLeader = value.getMember("value").asString();
+
             System.out.println("LEADER IS : " + getElectedLeader());
             if (this.electedLeader.equals(this.getNodeId())){
                 this.startHeartbeatSender();
@@ -41,34 +52,6 @@ public class LeaderCandidate extends ConsensusApplication{
                 this.startHeartbeatListener();
             }
         }
-        else if (value.getMember("hb").toString().equals(this.electedLeader) && !this.electedLeader.equals(getNodeId())){
-//            System.out.println("GOT HB" );
-            System.out.println("GOT HB FROM " + this.getElectedLeader() );
-            this.listeningThread.interrupt();
-        }
-//        else{
-//            System.out.println("wrong");
-//        }
-
-//        if (!threads){
-//            threads = true;
-//            this.electedLeader = value.getMember("value").toString();
-//            if (this.electedLeader.equals(this.getNodeId())){
-//                //            System.out.println("heartbeat phase started");
-//                this.startHeartbeatSender();
-//
-//            }
-//            else{
-//                //            System.out.println("heartbeat phase started");
-//                this.startHeartbeatListener();
-//            }
-//        }
-//        else{
-//            if (!this.electedLeader.equals(getNodeId())){
-//                listeningThread.interrupt();
-//            }
-//        }
-
     }
 
     public void startHeartbeatSender(){
@@ -76,7 +59,7 @@ public class LeaderCandidate extends ConsensusApplication{
         while (true) {
             System.out.println("ALIVE");
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
-            consensusFramework.writeACommand("result.hb = \"" + getNodeId() + "\";");
+            consensusFramework.writeACommand("ALIVE," + getNodeId());
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
@@ -124,14 +107,15 @@ public class LeaderCandidate extends ConsensusApplication{
                 "}");
     }
 
+
+
     public void startNewRound(){
-        String olderLeader = this.electedLeader;
         this.electedLeader = null;
         this.listeningThread = null;
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         dcf.writeACommand("result = {consensus:false, value:null};nodeRanks = nodeRanks.filter(function( obj ) {" +
-                        "    return obj.client !== \"" + olderLeader + "\";" +
-                        "  });");
+                "    return obj.client !== \"" + electedLeader + "\";" +
+                "  });");
     }
 
     public static void main(String[] args){

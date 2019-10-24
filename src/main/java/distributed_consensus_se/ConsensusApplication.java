@@ -14,6 +14,7 @@ public abstract class ConsensusApplication {
         this.kafkaServerAddress = kafkaServerAddress;
     }
 
+    public abstract void handleHeartbeat(String sender);
 
     public abstract boolean onReceiving(Value evaluationOutput);
 

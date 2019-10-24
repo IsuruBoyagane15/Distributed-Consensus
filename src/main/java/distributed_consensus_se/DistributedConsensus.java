@@ -148,11 +148,17 @@ public class DistributedConsensus{
                     while (!terminate) {
                         ConsumerRecords<String, String> records = kafkaConsumer.poll(10);
                         for (ConsumerRecord<String, String> record : records) {
+                            if(record.value().startsWith("ALIVE")){
+                                distributedNode.handleHeartbeat(record.value().split(",",2)[1]);
+                            }
+                            else{
                                 Value result = evaluateJsCode(record.value());
                                 boolean consensusAchieved = distributedNode.onReceiving(result);
                                 if (consensusAchieved) {
                                     distributedNode.commitAgreedValue(result);
                                 }
+                            }
+
                             }
 
                         }
