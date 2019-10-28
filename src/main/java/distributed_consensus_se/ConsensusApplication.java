@@ -14,10 +14,13 @@ public abstract class ConsensusApplication {
         this.kafkaServerAddress = kafkaServerAddress;
     }
 
+    public abstract void handleHeartbeat();
 
     public abstract boolean onReceiving(Value evaluationOutput);
 
-    public abstract void commitAgreedValue(Value evaluationOutput);
+    public abstract void onConsensus(Value evaluationOutput);
+
+    public abstract void participate(DistributedConsensus.roundStatuses myState, int myRoundNumber, String myRoundCodes);
 
     public String getKafkaTopic() {
         return kafkaTopic;

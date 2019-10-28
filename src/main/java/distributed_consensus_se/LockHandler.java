@@ -10,12 +10,17 @@ public class LockHandler extends ConsensusApplication{
     }
 
     @Override
+    public void handleHeartbeat() {
+
+    }
+
+    @Override
     public boolean onReceiving(Value value) {
         return value.asBoolean();
     }
 
     @Override
-    public void commitAgreedValue(Value value) {
+    public void onConsensus(Value value) {
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         for (int i=0; i<10; i++){
             System.out.println(this.getNodeId() + " is holding lock.");
@@ -30,8 +35,7 @@ public class LockHandler extends ConsensusApplication{
     }
 
 //    @Override
-    public boolean participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode) {
-        return false;
+    public void participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode) {
     }
 
     public static void handleLock(String nodeId, String kafkaServerAddress, String kafkaTopic){
@@ -40,6 +44,7 @@ public class LockHandler extends ConsensusApplication{
                     "if(Array.from(lockStatuses)[0] === \"" + nodeId + "\"){" +
                     "result = true;" +
                     "}" +
+                            "console.log(\"nodeRanks is :\" + Array.from(nodeRanks));" +
                     "result;", kafkaServerAddress, kafkaTopic);
 
         System.out.println("My id is " + lockHandler.getNodeId());

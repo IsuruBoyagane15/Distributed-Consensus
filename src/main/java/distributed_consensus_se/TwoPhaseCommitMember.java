@@ -12,12 +12,17 @@ public class TwoPhaseCommitMember extends ConsensusApplication {
     }
 
     @Override
+    public void handleHeartbeat() {
+
+    }
+
+    @Override
     public boolean onReceiving(Value evaluationOutput) {
         return !evaluationOutput.getMember("coordinatorElected").isNull();
     }
 
     @Override
-    public void commitAgreedValue(Value evaluationOutput) {
+    public void onConsensus(Value evaluationOutput) {
         if(evaluationOutput.getMember("coordinatorElected").toString().equals(getNodeId())){
             System.out.println("I am the cordinator");
         }
@@ -25,6 +30,11 @@ public class TwoPhaseCommitMember extends ConsensusApplication {
             System.out.println("Not the cordinator");
 
         }
+    }
+
+    @Override
+    public void participate(DistributedConsensus.roundStatuses myState, int myRoundNumber, String myRoundCodes) {
+
     }
 
     public static void twoPhaseCommit(String nodeId, String kafkaServerAddress, String kafkaTopic){
