@@ -77,6 +77,7 @@ public class DistributedConsensus{
         String unique_round_key = DigestUtils.sha256Hex(rawString);
         final String checkRecord = "CHECK,"+ unique_round_key;
 
+        System.out.println("My ID ID " + distributedNode.getNodeId() + " :: " + "CHECK MESSAGE IS " + checkRecord);
         writeACommand(checkRecord);
 
 
@@ -95,11 +96,12 @@ public class DistributedConsensus{
                     ConsumerRecords<String, String> records = kafkaConsumer.poll(10);
                     for (ConsumerRecord<String, String> record : records) {
                         if (!correctRoundIdentified){
+                            //IDENTIFYING THE ROUND
                             if (record.value().equals(checkRecord)) {
-                                //take decision on round and state
-                                System.out.println("UNIQUE HASH IS FOUND :: IDENTIFYING ROUND TO PARTICIPATE...");
+                                //take decision on round and state AFTER CHECHRECORD IS FOUND
+//                                System.out.println("UNIQUE HASH IS FOUND :: IDENTIFYING ROUND TO PARTICIPATE...");
                                 if (latestRoundsJsCode == ""){
-                                    System.out.println("TOPIC IS EMPTY :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
+//                                    System.out.println("TOPIC IS EMPTY :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                     nextRoundStatus = roundStatuses.NEW;
                                     nextRoundCode = "";
                                 }
@@ -107,25 +109,25 @@ public class DistributedConsensus{
                                     Value latestRoundResult = evaluateJsCode(latestRoundsJsCode);
                                     boolean consensusAchieved = distributedNode.onReceiving(latestRoundResult);
                                     if (consensusAchieved){
-                                        System.out.println("PREVIOUS ROUND IS FINISHED :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
+//                                        System.out.println("PREVIOUS ROUND IS FINISHED :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                         nextRoundStatus = roundStatuses.FINISHED;
                                         nextRoundCode = "";
                                         nextRoundNumber = latestRoundNumber;
                                     }
                                     else{
-                                        System.out.println("ONGOING ROUND :: PASS THIS ROUND'S NUMBER AND CODES TO CONSENSUS APPLICATION...");
+//                                        System.out.println("ONGOING ROUND :: PASS THIS ROUND'S NUMBER AND CODES TO CONSENSUS APPLICATION...");
                                         nextRoundStatus = roundStatuses.ONGOING;
                                         nextRoundCode = latestRoundsJsCode;
                                         nextRoundNumber = latestRoundNumber;
                                     }
                                 }
-                                System.out.println("Next round status is : " + nextRoundStatus);
-                                System.out.println("Next round number is : " + nextRoundNumber);
-                                System.out.println("Next round code is : " + nextRoundCode);
+                                System.out.println("\nNEXT ROUND STATUS is " + nextRoundStatus);
+                                System.out.println("NEXT ROUND NUMBER is " + nextRoundNumber);
+                                System.out.println("NEXT ROUND JSCODE is " + nextRoundCode + "\n");
 
 
                                 distributedNode.participate(nextRoundStatus,nextRoundNumber,nextRoundCode);
-                                System.out.println("ROUND IDENTIFICATION IS FINISHED...");
+//                                System.out.println("ROUND IDENTIFICATION IS FINISHED...");
                                 correctRoundIdentified = true;
 
                             }
@@ -135,7 +137,7 @@ public class DistributedConsensus{
                                 String[] recordContent = record.value().split(",", 2);
                                 int recordRoundNumber = Integer.parseInt(recordContent[0]);
                                 String recordMessage = recordContent[1]; //ALIVE or clean JS
-                                if (!recordMessage.equals("ALIVE")){
+                                if (!recordMessage.startsWith("ALIVE")){
                                     if (recordRoundNumber>latestRoundNumber){
                                         latestRoundsJsCode = recordMessage;
                                         latestRoundNumber = recordRoundNumber;
@@ -149,15 +151,16 @@ public class DistributedConsensus{
 
                         }
                         else if (!record.value().startsWith("CHECK,")){
+                            //EVALUATING RECORDS OF CURRENT ROUND
                             String[] recordContent = record.value().split(",", 2);
                             String recordMessage = recordContent[1]; //ALIVE,nodeId or clean JS
 
-                            if(recordMessage.equals("ALIVE")){
+                            if(recordMessage.startsWith("ALIVE")){
                                 distributedNode.handleHeartbeat();
                             }
                             else{
                                 Value result = evaluateJsCode(recordMessage);
-                                System.out.println("RESULT IS : " + result);
+//                                System.out.println("RESULT IS : " + result);
                                 boolean consensusAchieved = distributedNode.onReceiving(result);
                                 if (consensusAchieved) {
                                     distributedNode.onConsensus(result);
@@ -185,7 +188,7 @@ public class DistributedConsensus{
 
     public Value evaluateJsCode(String command){
         distributedNode.setRuntimeJsCode(distributedNode.getRuntimeJsCode() + command);
-        System.out.println("CODE EVALUATED : " +distributedNode.getRuntimeJsCode() + distributedNode.getEvaluationJsCode());
+//        System.out.println("CODE EVALUATED : " +distributedNode.getRuntimeJsCode() + distributedNode.getEvaluationJsCode());
         return jsContext.eval("js",distributedNode.getRuntimeJsCode()+
                 distributedNode.getEvaluationJsCode());
     }
