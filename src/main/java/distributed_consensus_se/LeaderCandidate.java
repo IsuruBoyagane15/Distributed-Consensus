@@ -24,6 +24,10 @@ public class LeaderCandidate extends ConsensusApplication{
         this.timeoutCounted = false;
     }
 
+    public void setElectedLeader(String electedLeader) {
+        this.electedLeader = electedLeader;
+    }
+
     @Override
     public void participate(DistributedConsensus.roundStatuses myState, int myRoundNumber, String myRoundCodes) {
         int nodeRank = (int)(1 + Math.random()*100);
@@ -33,14 +37,14 @@ public class LeaderCandidate extends ConsensusApplication{
 
 
         if (myState == DistributedConsensus.roundStatuses.NEW){
-            System.out.println("PARTICIPATED :: MY RANK IS " + nodeRank);
+            System.out.println("PARTICIPATED :: MY RANK IS " + nodeRank + " :: " + java.time.LocalTime.now());
             setRuntimeJsCode(initialJsCode);
             consensusFramework.writeACommand(myRoundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                     nodeRank +"});}");
         }
 
         else if(myState == DistributedConsensus.roundStatuses.ONGOING){
-            System.out.println("PARTICIPATED :: MY RANK IS " + nodeRank);
+            System.out.println("PARTICIPATED :: MY RANK IS " + nodeRank + " :: "  + java.time.LocalTime.now());
             setRuntimeJsCode(initialJsCode + myRoundCodes);
             consensusFramework.writeACommand(myRoundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                     nodeRank +"});}");
@@ -49,9 +53,14 @@ public class LeaderCandidate extends ConsensusApplication{
         else if(myState == DistributedConsensus.roundStatuses.FINISHED){
 
             if(this.listeningThread == null){
-                System.out.println("WAITING FOR HBs :: WILL JOIN TO NEXT ROUND");
+                System.out.println("WAITING FOR HBs :: WILL JOIN TO NEXT ROUND" + " :: " +  java.time.LocalTime.now());
                 this.listeningThread = new Thread(new HeartbeatListener(this));
                 this.listeningThread.start();
+                try {
+                    listeningThread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -59,23 +68,28 @@ public class LeaderCandidate extends ConsensusApplication{
     @Override
     public boolean onReceiving(Value result) {
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
-        System.out.println("FIST MEMBER IS " + result.getMember("firstCandidate").toString());
-        if (result.getMember("firstCandidate").toString().equals(getNodeId()) && !timeoutCounted){
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        if(electedLeader == null){
+            System.out.println("FIST MEMBER IS " + result.getMember("firstCandidate").toString());
+            if (result.getMember("firstCandidate").toString().equals(getNodeId()) && !timeoutCounted){
+                try {
+                    Thread.sleep(4000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                this.timeoutCounted = true;
+                dcf.writeACommand(this.roundNumber + ",result.timeout = true;");
+                System.out.println("WROTE TIMEOUT " + ":: " +  java.time.LocalTime.now());
             }
-            this.timeoutCounted = true;
-            dcf.writeACommand(this.roundNumber + ",result.timeout = true;");
-            System.out.println("WROTE TIMEOUT ...");
+            return result.getMember("consensus").asBoolean();
         }
-        return result.getMember("consensus").asBoolean();
+        else{
+            return false;
+        }
     }
 
     @Override
     public void onConsensus(Value value) {
-
+        this.electedLeader = value.getMember("value").toString();
         if (value.getMember("value").toString().equals(getNodeId())) {
             this.startHeartbeatSender();
         }
@@ -86,11 +100,11 @@ public class LeaderCandidate extends ConsensusApplication{
 
     public void startHeartbeatSender(){
         while (true) {
-            System.out.println("ALIVE");
+            System.out.println("ALIVE " + ":: " +  java.time.LocalTime.now());
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
-            consensusFramework.writeACommand(roundNumber + ",ALIVE"+ getNodeId());
+            consensusFramework.writeACommand(roundNumber + ",ALIVE");
             try {
-                Thread.sleep(500);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 LOGGER.error("LEADER : " + getNodeId() + " is interrupted.");
                 e.printStackTrace();
@@ -106,20 +120,23 @@ public class LeaderCandidate extends ConsensusApplication{
 
     @Override
     public void handleHeartbeat() {
-        this.listeningThread.interrupt();
+        if (electedLeader != null){
+            this.listeningThread.interrupt();
+        }
     }
 
     public void startNewRound(){
-        DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
-        this.setRuntimeJsCode("var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};");
-        this.timeoutCounted = false;
-        roundNumber ++;
+            DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
+            this.setRuntimeJsCode("var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};");
+            electedLeader = null;
+            this.timeoutCounted = false;
+            roundNumber ++;
 
-        int nodeRank = (int)(1 + Math.random()*100);
-        System.out.println("NEW ELECTION :: ROUND NUMBER IS " + roundNumber + " MY RANK IS " + nodeRank);
-        dcf.writeACommand(roundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
-                nodeRank +"})};");
-        LOGGER.info("New leader election is started.");
+            int nodeRank = (int)(1 + Math.random()*100);
+            System.out.println("NEW ELECTION :: ROUND NUMBER IS " + roundNumber + " MY RANK IS " + nodeRank + " :: " +  java.time.LocalTime.now());
+            dcf.writeACommand(roundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
+                    nodeRank +"})};");
+            LOGGER.info("New leader election is started.");
     }
 
     public static void electLeader(String nodeId, String kafkaServerAddress, String kafkaTopic){
@@ -140,7 +157,7 @@ public class LeaderCandidate extends ConsensusApplication{
                                         "}" +
                                     "}" +
                                 "}" +
-//                        "console.log(\"result.value is : \" + JSON.stringify(result));" +
+                        "console.log(\"nodeRanks is : \" + JSON.stringify(nodeRanks  ));" +
                         "result;",
                 kafkaServerAddress, kafkaTopic);
 

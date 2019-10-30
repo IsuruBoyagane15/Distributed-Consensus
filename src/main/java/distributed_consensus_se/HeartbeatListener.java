@@ -3,6 +3,8 @@ package distributed_consensus_se;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+
 public class HeartbeatListener extends Thread {
     private LeaderCandidate follower;
 
@@ -14,13 +16,14 @@ public class HeartbeatListener extends Thread {
 
     public void run() {
         try {
-            Thread.sleep(2000);
+            Thread.sleep(3000);
             System.out.println("LEADER FAILED");
-            LOGGER.info("Leader failed.");
+            LOGGER.info("Leader failed :: " + java.time.LocalTime.now());
             follower.startNewRound();
         } catch (InterruptedException e) {
-            System.out.println("GOT HB");
+            System.out.println("GOT HB :: " + java.time.LocalTime.now());
             run();
         }
     }
+
 }
