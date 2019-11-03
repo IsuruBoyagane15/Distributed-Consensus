@@ -4,6 +4,7 @@ import org.graalvm.polyglot.Value;
 
 public abstract class ConsensusApplication {
     private String nodeId, runtimeJsCode, evaluationJsCode, kafkaTopic, kafkaServerAddress;
+    private int roundNumber;
 
     public ConsensusApplication(String nodeId, String runtimeJsCode, String evaluationJsCode, String kafkaServerAddress,
                                 String kafkaTopic){
@@ -50,5 +51,9 @@ public abstract class ConsensusApplication {
         return kafkaServerAddress;
     }
 
-//    public abstract boolean participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode);
+    public int getRoundNumber() {
+        return roundNumber;
+    }
+
+    //    public abstract boolean participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode);
 }

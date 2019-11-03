@@ -1,8 +1,0 @@
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/LeaderCandidate.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/DistributedConsensus.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/ProducerGenerator.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/LockHandler.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/ConsumerGenerator.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/TwoPhaseCommitMember.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/HeartbeatListener.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributed_consensus_se/ConsensusApplication.java
