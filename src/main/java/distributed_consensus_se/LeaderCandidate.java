@@ -13,7 +13,7 @@ public class LeaderCandidate extends ConsensusApplication{
     private Thread listeningThread;
     private String electedLeader;
     private final String initialJsCode;
-    private boolean unsertain;
+    private boolean pending;
 
 
     public LeaderCandidate(String nodeId, String runtimeJsCode, String evaluationJsCode, String kafkaServerAddress,
@@ -23,19 +23,19 @@ public class LeaderCandidate extends ConsensusApplication{
         this.listeningThread = null;
         this.electedLeader = null;
         this.timeoutCounted = false;
-        this.unsertain = false;
+        this.pending = false;
     }
 
     public void setElectedLeader(String electedLeader) {
         this.electedLeader = electedLeader;
     }
 
-    public boolean isUnsertain() {
-        return unsertain;
+    public boolean isPending() {
+        return pending;
     }
 
-    public void setUnsertain(boolean unsertain) {
-        this.unsertain = unsertain;
+    public void setPending(boolean pending) {
+        this.pending = pending;
     }
 
     @Override
@@ -61,7 +61,7 @@ public class LeaderCandidate extends ConsensusApplication{
         }
 
         else if(myState == DistributedConsensus.roundStatuses.FINISHED){
-            this.unsertain = true;
+            this.pending = true;
             if(this.listeningThread == null){
                 System.out.println("WAITING FOR HBs :: WILL JOIN TO NEXT ROUND" + " :: " +  java.time.LocalTime.now());
                 this.listeningThread = new Thread(new HeartbeatListener(this));
@@ -73,7 +73,7 @@ public class LeaderCandidate extends ConsensusApplication{
     @Override
     public boolean onReceiving(Value result) {
         DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
-        if(electedLeader == null && !unsertain){
+        if(electedLeader == null && !pending){
             System.out.println("FIRST MEMBER IS " + result.getMember("firstCandidate").toString());
             if (result.getMember("firstCandidate").toString().equals(getNodeId()) && !timeoutCounted){
                 try {
@@ -130,11 +130,11 @@ public class LeaderCandidate extends ConsensusApplication{
 
     public void startNewRound(){
             DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
-            if (!this.unsertain){
+            if (!this.pending){
                 this.setRuntimeJsCode("var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};");
             }
             else{
-                this.unsertain = false;
+                this.pending = false;
 
             }
             this.electedLeader = null;

@@ -20,8 +20,8 @@ public class HeartbeatListener extends Thread {
             follower.startNewRound();
         } catch (InterruptedException e) {
             System.out.println("GOT HB :: " + java.time.LocalTime.now());
-            if(follower.isUnsertain()){
-                follower.setUnsertain(false);
+            if(follower.isPending()){
+                follower.setPending(false);
             }
             run();
         }
