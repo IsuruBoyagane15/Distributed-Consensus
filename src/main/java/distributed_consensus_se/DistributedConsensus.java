@@ -107,7 +107,7 @@ public class DistributedConsensus{
                                 }
                                 else{
                                     Value latestRoundResult = evaluateJsCode(latestRoundsJsCode);
-                                    boolean consensusAchieved = distributedNode.onReceiving(latestRoundResult);
+                                    boolean consensusAchieved = distributedNode.checkConsensus(latestRoundResult);
                                     if (consensusAchieved){
 //                                        System.out.println("PREVIOUS ROUND IS FINISHED :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                         nextRoundStatus = roundStatuses.FINISHED;

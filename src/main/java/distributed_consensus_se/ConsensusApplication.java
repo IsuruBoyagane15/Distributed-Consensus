@@ -17,6 +17,8 @@ public abstract class ConsensusApplication {
 
     public abstract void handleHeartbeat();
 
+    public abstract boolean checkConsensus(Value result);
+
     public abstract boolean onReceiving(Value evaluationOutput);
 
     public abstract void onConsensus(Value evaluationOutput);

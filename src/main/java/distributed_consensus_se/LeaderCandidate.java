@@ -78,7 +78,6 @@ public class LeaderCandidate extends ConsensusApplication{
     }
 
     @Override
-
     public boolean onReceiving(Value result) {
 //        if (this.joiningState == DistributedConsensus.roundStatuses.FINISHED){
 //            this.joiningState = null;
@@ -137,6 +136,11 @@ public class LeaderCandidate extends ConsensusApplication{
     @Override
     public void handleHeartbeat() {
         this.listeningThread.interrupt();
+    }
+
+    @Override
+    public boolean checkConsensus(Value result) {
+        return result.getMember("consensus").asBoolean();
     }
 
     public void startNewRound(){
