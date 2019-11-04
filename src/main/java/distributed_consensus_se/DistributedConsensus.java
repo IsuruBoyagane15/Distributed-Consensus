@@ -88,7 +88,7 @@ public class DistributedConsensus{
             int latestRoundNumber = 0;
 
             String nextRoundCode;
-            int praposedRoundNumber = 0;
+            int proposedRoundNumber = 0;
             roundStatuses nextRoundStatus;
 
             try {
@@ -112,21 +112,21 @@ public class DistributedConsensus{
 //                                        System.out.println("PREVIOUS ROUND IS FINISHED :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                         nextRoundStatus = roundStatuses.FINISHED;
                                         nextRoundCode = "";
-                                        praposedRoundNumber = latestRoundNumber;
+                                        proposedRoundNumber = latestRoundNumber;
                                     }
                                     else{
 //                                        System.out.println("ONGOING ROUND :: PASS THIS ROUND'S NUMBER AND CODES TO CONSENSUS APPLICATION...");
                                         nextRoundStatus = roundStatuses.ONGOING;
                                         nextRoundCode = latestRoundsJsCode;
-                                        praposedRoundNumber = latestRoundNumber;
+                                        proposedRoundNumber = latestRoundNumber;
                                     }
                                 }
                                 System.out.println("\nNEXT ROUND STATUS is " + nextRoundStatus);
-                                System.out.println("NEXT ROUND NUMBER is " + praposedRoundNumber);
+                                System.out.println("NEXT ROUND NUMBER is " + proposedRoundNumber);
                                 System.out.println("NEXT ROUND JSCODE is " + nextRoundCode + "\n");
 
 
-                                distributedNode.participate(nextRoundStatus,praposedRoundNumber,nextRoundCode);
+                                distributedNode.participate(nextRoundStatus,proposedRoundNumber,nextRoundCode);
 //                                System.out.println("ROUND IDENTIFICATION IS FINISHED...");
                                 correctRoundIdentified = true;
 

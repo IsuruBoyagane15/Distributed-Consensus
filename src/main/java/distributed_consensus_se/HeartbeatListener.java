@@ -14,19 +14,25 @@ public class HeartbeatListener extends Thread {
 
     public void run() {
         try {
-            Thread.sleep(4000);
-            System.out.println("LEADER FAILED");
+            Thread.sleep(8000);
+            System.out.println("LEADER FAILED :: " + java.time.LocalTime.now());
             LOGGER.info("Leader failed :: " + java.time.LocalTime.now());
             follower.startNewRound();
         } catch (InterruptedException e) {
+//            if (follower.isVal()){
+//                follower.setVal(false);
+//                System.out.println("GOT A MESSAGE :: STARTING NEW ROUND");
+//                follower.startNewRound();
+//            }
+//            else{
             if(follower.getElectedLeader() == null){
                 follower.setElectedLeader("abc");
             }
+
             System.out.println("GOT HB :: " + java.time.LocalTime.now());
-//            if(follower.isPending()){
-//                follower.setPending(false);
-//            }
             run();
+//            }
+
         }
     }
 
