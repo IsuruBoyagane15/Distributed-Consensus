@@ -8,14 +8,13 @@ import java.util.UUID;
 
 public class LeaderCandidate extends ConsensusApplication{
     private static final Logger LOGGER = LoggerFactory.getLogger(LeaderCandidate.class);
+    private boolean skipARound;
     private DistributedConsensus.roundStatuses joiningState;
     private boolean timeoutCounted;
     private int roundNumber;
     private Thread listeningThread;
     private String electedLeader;
     private final String initialJsCode;
-//    private boolean val;
-
 
     public LeaderCandidate(String nodeId, String runtimeJsCode, String evaluationJsCode, String kafkaServerAddress,
                            String kafkaTopic) {
@@ -25,6 +24,7 @@ public class LeaderCandidate extends ConsensusApplication{
         this.electedLeader = null;
         this.timeoutCounted = false; //FIRST LEADER CANDIDATE TO JOIN THAT ROUND WILL COUNT A TIMEOUT AND CLOSE THE VOTING BY WRITING IT TO KAFKA
         this.joiningState = null;
+        this.skipARound = false; //USED BY CANDIDATE WHICH GOT FINISHED STATUS TO INCREMENT ROUND NUMBER WHICH IS SKIP BY WAITING CANDIDATE
     }
 
     public void setElectedLeader(String electedLeader) {
@@ -74,6 +74,11 @@ public class LeaderCandidate extends ConsensusApplication{
         if(electedLeader == null){
 
             if (this.joiningState == DistributedConsensus.roundStatuses.FINISHED){
+                if (!skipARound){
+
+                    this.roundNumber ++;
+                    skipARound = true;
+                }
                 System.out.println("SOMEONE HAS STARTED NEW ROUND");
                 listeningThread.interrupt();
                 return false;
