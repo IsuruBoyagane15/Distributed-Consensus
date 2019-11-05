@@ -146,7 +146,6 @@ public class DistributedConsensus{
                                         latestRoundsJsCode += recordMessage;
                                     }
                                 }
-
                             }
 
                         }

@@ -123,7 +123,7 @@ public class LeaderCandidate extends ConsensusApplication{
         while (true) {
             System.out.println("ALIVE " + ":: " +  java.time.LocalTime.now());
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
-            consensusFramework.writeACommand(roundNumber + ",ALIVE");
+            consensusFramework.writeACommand(roundNumber + ",ALIVE,"+ getNodeId());
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
