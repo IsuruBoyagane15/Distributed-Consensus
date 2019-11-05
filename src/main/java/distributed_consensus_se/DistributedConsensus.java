@@ -180,15 +180,15 @@ public class DistributedConsensus{
         new Thread(consuming).start();
     }
 
-
-
     public void writeACommand(String command) {
         kafkaProducer.send(new ProducerRecord<String, String>(distributedNode.getKafkaTopic(), command));
     }
 
     public Value evaluateJsCode(String command){
+        //concatinate current runtimeJsCode with command
         distributedNode.setRuntimeJsCode(distributedNode.getRuntimeJsCode() + command);
 //        System.out.println("CODE EVALUATED : " +distributedNode.getRuntimeJsCode() + distributedNode.getEvaluationJsCode());
+        //evaluate(runtimeJsCode + evaluationJsCode)
         return jsContext.eval("js",distributedNode.getRuntimeJsCode()+
                 distributedNode.getEvaluationJsCode());
     }

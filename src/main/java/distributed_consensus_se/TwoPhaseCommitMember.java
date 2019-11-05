@@ -17,6 +17,11 @@ public class TwoPhaseCommitMember extends ConsensusApplication {
     }
 
     @Override
+    public boolean checkConsensus(Value result) {
+        return false;
+    }
+
+    @Override
     public boolean onReceiving(Value evaluationOutput) {
         return !evaluationOutput.getMember("coordinatorElected").isNull();
     }

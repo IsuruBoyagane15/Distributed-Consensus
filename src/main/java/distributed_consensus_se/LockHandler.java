@@ -15,8 +15,13 @@ public class LockHandler extends ConsensusApplication{
     }
 
     @Override
+    public boolean checkConsensus(Value result) {
+        return result.asBoolean();
+    }
+
+    @Override
     public boolean onReceiving(Value value) {
-        return value.asBoolean();
+        return checkConsensus(value);
     }
 
     @Override
