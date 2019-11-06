@@ -1,4 +1,4 @@
-package distributed_consensus_se;
+package distributedConsensus;
 
 import org.graalvm.polyglot.Value;
 
@@ -39,7 +39,7 @@ public class LockHandler extends ConsensusApplication{
         dcf.setTerminate(true);
     }
 
-//    @Override
+    @Override
     public void participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode) {
     }
 

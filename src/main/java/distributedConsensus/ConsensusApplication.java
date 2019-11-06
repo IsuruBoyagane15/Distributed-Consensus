@@ -1,10 +1,9 @@
-package distributed_consensus_se;
+package distributedConsensus;
 
 import org.graalvm.polyglot.Value;
 
 public abstract class ConsensusApplication {
     private String nodeId, runtimeJsCode, evaluationJsCode, kafkaTopic, kafkaServerAddress;
-    private int roundNumber;
 
     public ConsensusApplication(String nodeId, String runtimeJsCode, String evaluationJsCode, String kafkaServerAddress,
                                 String kafkaTopic){
@@ -14,6 +13,7 @@ public abstract class ConsensusApplication {
         this.kafkaTopic = kafkaTopic;
         this.kafkaServerAddress = kafkaServerAddress;
     }
+
 
     public abstract void handleHeartbeat();
 
@@ -53,10 +53,6 @@ public abstract class ConsensusApplication {
 
     public String getKafkaServerAddress() {
         return kafkaServerAddress;
-    }
-
-    public int getRoundNumber() {
-        return roundNumber;
     }
 
 }

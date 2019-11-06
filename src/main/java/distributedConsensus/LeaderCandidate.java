@@ -1,4 +1,4 @@
-package distributed_consensus_se;
+package distributedConsensus;
 
 import org.graalvm.polyglot.Value;
 import org.slf4j.Logger;
@@ -154,10 +154,10 @@ public class LeaderCandidate extends ConsensusApplication{
 
     public void startNewRound(){
             DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
-            this.setRuntimeJsCode(initialJsCode); // IN EACH NEW ROUND JS SHOULD BE RESET
-            this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
+//            this.setRuntimeJsCode(initialJsCode); // DONE IN CONSUMER LOOP WHEN EVALUATING SECTION FINDS A HIGHER ROUNDNUMBERED RECORD
+//            this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
 //            this.electedLeader = null; //ALREADY HANDLED BY HeartbeatListener
-            this.timeoutCounted = false;
+//            this.timeoutCounted = false;
             this.roundNumber ++;
 
             int nodeRank = (int)(1 + Math.random()*100);

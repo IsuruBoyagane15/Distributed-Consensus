@@ -1,4 +1,4 @@
-package distributed_consensus_se;
+package distributedConsensus;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

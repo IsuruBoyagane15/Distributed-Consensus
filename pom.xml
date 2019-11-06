@@ -31,7 +31,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        distributed_consensus_se/LeaderCandidate
+                                        distributedConsensus/LeaderCandidate
                                     </mainClass>
                                 </manifest>
                             </archive>

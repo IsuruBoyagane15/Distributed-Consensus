@@ -1,4 +1,4 @@
-package distributed_consensus_se;
+package distributedConsensus;
 
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 
