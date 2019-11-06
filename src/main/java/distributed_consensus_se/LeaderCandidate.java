@@ -31,10 +31,6 @@ public class LeaderCandidate extends ConsensusApplication{
         this.electedLeader = electedLeader;
     }
 
-    public String getElectedLeader() {
-        return electedLeader;
-    }
-
     @Override
     public void participate(DistributedConsensus.roundStatuses myState, int proposedRoundNumber, String myRoundCodes) {
         int nodeRank = (int)(1 + Math.random()*100);
@@ -87,7 +83,7 @@ public class LeaderCandidate extends ConsensusApplication{
 //            System.out.println("FIRST MEMBER IS " + result.getMember("firstCandidate").toString());
             if (result.getMember("firstCandidate").toString().equals(getNodeId()) && !timeoutCounted){
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -125,7 +121,7 @@ public class LeaderCandidate extends ConsensusApplication{
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
             consensusFramework.writeACommand(roundNumber + ",ALIVE,"+ getNodeId());
             try {
-                Thread.sleep(2000);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 LOGGER.error("LEADER : " + getNodeId() + " is interrupted.");
                 e.printStackTrace();
@@ -152,7 +148,6 @@ public class LeaderCandidate extends ConsensusApplication{
     public void startNewRound(){
             DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
             this.setRuntimeJsCode(initialJsCode); // IN EACH NEW ROUND JS SHOULD BE RESET
-            this.listeningThread = null;
             this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
 //            this.electedLeader = null; //ALREADY HANDLED BY HeartbeatListener
             this.timeoutCounted = false;

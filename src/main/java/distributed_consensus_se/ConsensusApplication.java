@@ -57,5 +57,4 @@ public abstract class ConsensusApplication {
         return roundNumber;
     }
 
-    //    public abstract boolean participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode);
 }

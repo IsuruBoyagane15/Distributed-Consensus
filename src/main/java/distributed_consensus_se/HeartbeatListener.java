@@ -14,7 +14,7 @@ public class HeartbeatListener extends Thread {
 
     public void run() {
         try {
-            Thread.sleep(8000);
+            Thread.sleep(2000);
             System.out.println("LEADER FAILED :: " + java.time.LocalTime.now());
             follower.setElectedLeader(null);
 
