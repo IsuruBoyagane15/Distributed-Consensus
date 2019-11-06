@@ -76,6 +76,7 @@ public class DistributedConsensus{
         String rawString = generateUniqueKey();
         String unique_round_key = DigestUtils.sha256Hex(rawString);
         final String checkRecord = "CHECK,"+ unique_round_key;
+        final int[] ongoingRoundNumber = {0};
 
         System.out.println("My ID ID " + distributedNode.getNodeId() + " :: " + "CHECK MESSAGE IS " + checkRecord);
         writeACommand(checkRecord);
@@ -147,13 +148,17 @@ public class DistributedConsensus{
                                     }
                                 }
                             }
-
                         }
                         else if (!record.value().startsWith("CHECK,")){
                             //EVALUATING RECORDS OF CURRENT ROUND
                             String[] recordContent = record.value().split(",", 2);
+                            int recordRoundNumber = Integer.parseInt(recordContent[0]); //Round number written with the record
                             String recordMessage = recordContent[1]; //ALIVE,nodeId or clean JS
 
+                            if (recordRoundNumber > ongoingRoundNumber[0]){
+                                distributedNode.cleanRound();
+                                ongoingRoundNumber[0] = recordRoundNumber;
+                            }
                             if(recordMessage.startsWith("ALIVE")){
                                 distributedNode.handleHeartbeat();
                             }

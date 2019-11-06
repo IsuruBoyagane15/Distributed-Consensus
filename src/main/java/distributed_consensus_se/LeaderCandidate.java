@@ -115,6 +115,16 @@ public class LeaderCandidate extends ConsensusApplication{
         }
     }
 
+    @Override
+    public void handleHeartbeat() {
+        this.listeningThread.interrupt();
+    }
+
+    @Override
+    public boolean checkConsensus(Value result) {
+        return result.getMember("consensus").asBoolean();
+    }
+
     public void startHeartbeatSender(){
         while (true) {
             System.out.println("ALIVE " + ":: " +  java.time.LocalTime.now());
@@ -135,14 +145,11 @@ public class LeaderCandidate extends ConsensusApplication{
         LOGGER.info("FOLLOWER :" + getNodeId() + " started listening to heartbeats.");
     }
 
-    @Override
-    public void handleHeartbeat() {
-        this.listeningThread.interrupt();
-    }
-
-    @Override
-    public boolean checkConsensus(Value result) {
-        return result.getMember("consensus").asBoolean();
+    public void cleanRound(){
+        this.setRuntimeJsCode(initialJsCode); // IN EACH NEW ROUND JS SHOULD BE RESET
+        this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
+        this.timeoutCounted = false;
+        this.electedLeader = null;
     }
 
     public void startNewRound(){

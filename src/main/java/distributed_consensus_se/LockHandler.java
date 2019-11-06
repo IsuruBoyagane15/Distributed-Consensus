@@ -43,6 +43,11 @@ public class LockHandler extends ConsensusApplication{
     public void participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode) {
     }
 
+    @Override
+    public void cleanRound() {
+
+    }
+
     public static void handleLock(String nodeId, String kafkaServerAddress, String kafkaTopic){
             LockHandler lockHandler = new LockHandler(nodeId, "var lockStatuses = new Set([]); result = false;",
 //            "console.log(\"queue is :\" + Array.from(lockStatuses));" +
