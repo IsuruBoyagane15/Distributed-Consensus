@@ -47,10 +47,6 @@ public abstract class ConsensusApplication {
         return evaluationJsCode;
     }
 
-    public void setEvaluationJsCode(String evaluationJsCode) {
-        this.evaluationJsCode = evaluationJsCode;
-    }
-
     public String getKafkaServerAddress() {
         return kafkaServerAddress;
     }
