@@ -16,6 +16,8 @@ public class HeartbeatListener extends Thread {
             Thread.sleep(2000);
             System.out.println("LEADER FAILED :: " + java.time.LocalTime.now());
             follower.setElectedLeader(null);
+            LOGGER.info("LeaderCandidate" +
+                    " " + follower.getNodeId() + " identified leader FAILURE");
 
             follower.startNewRound();
         } catch (InterruptedException e) {

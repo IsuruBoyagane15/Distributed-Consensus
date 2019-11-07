@@ -80,7 +80,7 @@ public class DistributedConsensus{
 
         System.out.println(" ID : " + distributedNode.getNodeId() + " :: " + "CHECK MESSAGE : " + checkRecord);
         writeACommand(checkRecord);
-        LOGGER.info(distributedNode.getNodeId() + " wrote check record : " + checkRecord);
+        LOGGER.info("LeaderCandidate " + distributedNode.getNodeId() + " wrote check record : " + checkRecord);
 
         Runnable consuming = () -> {
             boolean correctRoundIdentified = false;
@@ -99,9 +99,13 @@ public class DistributedConsensus{
                         if (!correctRoundIdentified){
                             //IDENTIFYING THE ROUND
                             if (record.value().equals(checkRecord)) {
+                                LOGGER.info("LeaderCandidate" +
+                                        " " + distributedNode.getNodeId() + " found check record : " + checkRecord);
                                 //take decision on round and state AFTER CHECHRECORD IS FOUND
 //                                System.out.println("UNIQUE HASH IS FOUND :: IDENTIFYING ROUND TO PARTICIPATE...");
                                 if (latestRoundsJsCode == ""){
+                                    LOGGER.info("LeaderCandidate" +
+                                            " " + distributedNode.getNodeId() + " found EMPTY Kafka log");
 //                                    System.out.println("TOPIC IS EMPTY :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                     nextRoundStatus = roundStatuses.NEW;
                                     nextRoundCode = "";
@@ -110,6 +114,8 @@ public class DistributedConsensus{
                                     Value latestRoundResult = evaluateJsCode(latestRoundsJsCode);
                                     boolean consensusAchieved = distributedNode.checkConsensus(latestRoundResult);
                                     if (consensusAchieved){
+                                        LOGGER.info("LeaderCandidate" +
+                                                " " + distributedNode.getNodeId() + " found FINISHED round in Kafka log");
 //                                        System.out.println("PREVIOUS ROUND IS FINISHED :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                         nextRoundStatus = roundStatuses.FINISHED;
                                         nextRoundCode = "";
@@ -117,18 +123,20 @@ public class DistributedConsensus{
                                     }
                                     else{
 //                                        System.out.println("ONGOING ROUND :: PASS THIS ROUND'S NUMBER AND CODES TO CONSENSUS APPLICATION...");
+                                        LOGGER.info("Java LeaderCandidate" +
+                                                " " + distributedNode.getNodeId() + " found ONGOING round in Kafka log");
                                         nextRoundStatus = roundStatuses.ONGOING;
                                         nextRoundCode = latestRoundsJsCode;
                                         proposedRoundNumber = latestRoundNumber;
                                     }
                                 }
-                                System.out.println("\nNEXT ROUND STATUS is " + nextRoundStatus);
-                                System.out.println("NEXT ROUND NUMBER is " + proposedRoundNumber);
-                                System.out.println("NEXT ROUND JSCODE is " + nextRoundCode + "\n");
-
+                                System.out.println("\nLAST ROUND STATUS is " + nextRoundStatus);
+                                System.out.println("LAST ROUND NUMBER is " + proposedRoundNumber);
+                                System.out.println("LAST ROUND JSCODE is " + nextRoundCode + "\n");
+                                LOGGER.info("LeaderCandidate" +
+                                        " " + distributedNode.getNodeId() + "IDENTIFIED ROUND :: LAST ROUND STATE : " + nextRoundStatus + " :: " + "LAST ROUND NUMBER : " + proposedRoundNumber + " :: " + "LAST ROUND JSCODE : " + nextRoundCode);
 
                                 distributedNode.participate(nextRoundStatus,proposedRoundNumber,nextRoundCode);
-//                                System.out.println("ROUND IDENTIFICATION IS FINISHED...");
                                 correctRoundIdentified = true;
 
                             }
@@ -161,6 +169,8 @@ public class DistributedConsensus{
                             }
                             if(recordMessage.startsWith("ALIVE")){
                                 distributedNode.handleHeartbeat();
+                                LOGGER.info("LeaderCandidate" +
+                                        " " + distributedNode.getNodeId() + " found heartbeat");
                             }
                             else{
                                 Value result = evaluateJsCode(recordMessage);
