@@ -8,8 +8,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
+
 
 
 public class DistributedConsensus{
@@ -18,7 +18,7 @@ public class DistributedConsensus{
     private org.graalvm.polyglot.Context jsContext;
     private ConsensusApplication distributedNode;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DistributedConsensus.class);
+    private static final Logger LOGGER = Logger.getLogger(DistributedConsensus.class);
     private static DistributedConsensus instance = null;
     private boolean terminate;
     enum roundStatuses {
@@ -78,9 +78,9 @@ public class DistributedConsensus{
         final String checkRecord = "CHECK,"+ unique_round_key;
         final int[] ongoingRoundNumber = {0};
 
-        System.out.println("My ID ID " + distributedNode.getNodeId() + " :: " + "CHECK MESSAGE IS " + checkRecord);
+        System.out.println(" ID : " + distributedNode.getNodeId() + " :: " + "CHECK MESSAGE : " + checkRecord);
         writeACommand(checkRecord);
-
+        LOGGER.info(distributedNode.getNodeId() + " wrote check record : " + checkRecord);
 
         Runnable consuming = () -> {
             boolean correctRoundIdentified = false;

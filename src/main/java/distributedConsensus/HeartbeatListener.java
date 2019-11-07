@@ -1,12 +1,11 @@
 package distributedConsensus;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 public class HeartbeatListener extends Thread {
     private LeaderCandidate follower;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LeaderCandidate.class);
+    private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
 
     public HeartbeatListener(LeaderCandidate follower){
         this.follower = follower;

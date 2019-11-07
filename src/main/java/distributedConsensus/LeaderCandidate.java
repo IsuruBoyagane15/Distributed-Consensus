@@ -1,13 +1,12 @@
 package distributedConsensus;
 
 import org.graalvm.polyglot.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 
 import java.util.UUID;
 
 public class LeaderCandidate extends ConsensusApplication{
-    private static final Logger LOGGER = LoggerFactory.getLogger(LeaderCandidate.class);
+    private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
     private boolean skipARound;
     private DistributedConsensus.roundStatuses joiningState;
     private boolean timeoutCounted;
@@ -191,11 +190,11 @@ public class LeaderCandidate extends ConsensusApplication{
 
         DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(leaderCandidate);
         consensusFramework.startRound();
+        LOGGER.info(nodeId + " started");
     }
 
     public static void main(String[] args){
         String id = UUID.randomUUID().toString();
         LeaderCandidate.electLeader(id, args[0], args[1]);
-
     }
 }

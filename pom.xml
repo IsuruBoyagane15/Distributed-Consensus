@@ -70,11 +70,13 @@
             <artifactId>truffle-api</artifactId>
             <version>1.0.0-rc10</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.slf4j</groupId>-->
-<!--            <artifactId>slf4j-nop</artifactId>-->
-<!--            <version>1.7.26</version>-->
-<!--        </dependency>-->
+
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>compile</scope>
+        </dependency>
 
         <dependency>
             <groupId>commons-codec</groupId>
