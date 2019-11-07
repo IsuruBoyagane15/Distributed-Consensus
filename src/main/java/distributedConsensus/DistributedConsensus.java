@@ -78,9 +78,9 @@ public class DistributedConsensus{
         final String checkRecord = "CHECK,"+ unique_round_key;
         final int[] ongoingRoundNumber = {0};
 
-        System.out.println(" ID : " + distributedNode.getNodeId() + " :: " + "CHECK MESSAGE : " + checkRecord);
+        System.out.println("ID : " + distributedNode.getNodeId() + " :: " + "CHECK MESSAGE : " + checkRecord);
         writeACommand(checkRecord);
-        LOGGER.info("LeaderCandidate " + distributedNode.getNodeId() + " wrote check record : " + checkRecord);
+        LOGGER.info("Wrote check record : " + checkRecord);
 
         Runnable consuming = () -> {
             boolean correctRoundIdentified = false;
@@ -99,13 +99,11 @@ public class DistributedConsensus{
                         if (!correctRoundIdentified){
                             //IDENTIFYING THE ROUND
                             if (record.value().equals(checkRecord)) {
-                                LOGGER.info("LeaderCandidate" +
-                                        " " + distributedNode.getNodeId() + " found check record : " + checkRecord);
+                                LOGGER.info("Found check record : " + checkRecord);
                                 //take decision on round and state AFTER CHECHRECORD IS FOUND
 //                                System.out.println("UNIQUE HASH IS FOUND :: IDENTIFYING ROUND TO PARTICIPATE...");
                                 if (latestRoundsJsCode == ""){
-                                    LOGGER.info("LeaderCandidate" +
-                                            " " + distributedNode.getNodeId() + " found EMPTY Kafka log");
+                                    LOGGER.info("Found EMPTY Kafka log");
 //                                    System.out.println("TOPIC IS EMPTY :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                     nextRoundStatus = roundStatuses.NEW;
                                     nextRoundCode = "";
@@ -114,8 +112,7 @@ public class DistributedConsensus{
                                     Value latestRoundResult = evaluateJsCode(latestRoundsJsCode);
                                     boolean consensusAchieved = distributedNode.checkConsensus(latestRoundResult);
                                     if (consensusAchieved){
-                                        LOGGER.info("LeaderCandidate" +
-                                                " " + distributedNode.getNodeId() + " found FINISHED round in Kafka log");
+                                        LOGGER.info("Found FINISHED round in Kafka log");
 //                                        System.out.println("PREVIOUS ROUND IS FINISHED :: STARTING NEW ROUND WITH ROUND_NUMBER = 0 ...");
                                         nextRoundStatus = roundStatuses.FINISHED;
                                         nextRoundCode = "";
@@ -123,8 +120,7 @@ public class DistributedConsensus{
                                     }
                                     else{
 //                                        System.out.println("ONGOING ROUND :: PASS THIS ROUND'S NUMBER AND CODES TO CONSENSUS APPLICATION...");
-                                        LOGGER.info("Java LeaderCandidate" +
-                                                " " + distributedNode.getNodeId() + " found ONGOING round in Kafka log");
+                                        LOGGER.info("Found ONGOING round in Kafka log");
                                         nextRoundStatus = roundStatuses.ONGOING;
                                         nextRoundCode = latestRoundsJsCode;
                                         proposedRoundNumber = latestRoundNumber;
@@ -133,8 +129,7 @@ public class DistributedConsensus{
                                 System.out.println("\nLAST ROUND STATUS is " + nextRoundStatus);
                                 System.out.println("LAST ROUND NUMBER is " + proposedRoundNumber);
                                 System.out.println("LAST ROUND JSCODE is " + nextRoundCode + "\n");
-                                LOGGER.info("LeaderCandidate" +
-                                        " " + distributedNode.getNodeId() + "IDENTIFIED ROUND :: LAST ROUND STATE : " + nextRoundStatus + " :: " + "LAST ROUND NUMBER : " + proposedRoundNumber + " :: " + "LAST ROUND JSCODE : " + nextRoundCode);
+                                LOGGER.info("Identified round :: LAST ROUND STATE : " + nextRoundStatus + " :: " + "LAST ROUND NUMBER : " + proposedRoundNumber + " :: " + "LAST ROUND JSCODE : " + nextRoundCode);
 
                                 distributedNode.participate(nextRoundStatus,proposedRoundNumber,nextRoundCode);
                                 correctRoundIdentified = true;
@@ -150,6 +145,7 @@ public class DistributedConsensus{
                                     if (recordRoundNumber>latestRoundNumber){
                                         latestRoundsJsCode = recordMessage;
                                         latestRoundNumber = recordRoundNumber;
+                                        LOGGER.info("Found newer round with round number " + latestRoundNumber + "in the Kafka log before CHECK record");
                                     }
                                     else if(recordRoundNumber==latestRoundNumber){
                                         latestRoundsJsCode += recordMessage;
@@ -164,17 +160,19 @@ public class DistributedConsensus{
                             String recordMessage = recordContent[1]; //ALIVE,nodeId or clean JS
 
                             if (recordRoundNumber > ongoingRoundNumber[0]){
-                                distributedNode.cleanRound();
+                                //log for cleaning ground is done in method level
+                                distributedNode.cleanRound(ongoingRoundNumber[0]);
                                 ongoingRoundNumber[0] = recordRoundNumber;
                             }
                             if(recordMessage.startsWith("ALIVE")){
+                                //log for HB ground is done in method level
                                 distributedNode.handleHeartbeat();
-                                LOGGER.info("LeaderCandidate" +
-                                        " " + distributedNode.getNodeId() + " found heartbeat");
+                                LOGGER.info("Got HB");
+
                             }
                             else{
+                                LOGGER.info("Evaluating records of current round with round number : " + recordRoundNumber);
                                 Value result = evaluateJsCode(recordMessage);
-//                                System.out.println("RESULT IS : " + result);
                                 boolean consensusAchieved = distributedNode.onReceiving(result);
                                 if (consensusAchieved) {
                                     distributedNode.onConsensus(result);

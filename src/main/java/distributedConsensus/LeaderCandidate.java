@@ -3,9 +3,16 @@ package distributedConsensus;
 import org.graalvm.polyglot.Value;
 import org.apache.log4j.Logger;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.UUID;
 
 public class LeaderCandidate extends ConsensusApplication{
+
+    static{
+        String id = UUID.randomUUID().toString();
+        System.setProperty("id", id);
+    }
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
     private boolean skipARound;
     private DistributedConsensus.roundStatuses joiningState;
@@ -43,6 +50,8 @@ public class LeaderCandidate extends ConsensusApplication{
             System.out.println("PARTICIPATED :: MY RANK IS " + nodeRank + " :: " + java.time.LocalTime.now());
             consensusFramework.writeACommand(proposedRoundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                     nodeRank +"});}");
+            LOGGER.info("Participated to round :" + roundNumber + " rank :" + nodeRank );
+
         }
 
         else if(myState == DistributedConsensus.roundStatuses.ONGOING){
@@ -50,15 +59,17 @@ public class LeaderCandidate extends ConsensusApplication{
             setRuntimeJsCode(initialJsCode + myRoundCodes);
             consensusFramework.writeACommand(proposedRoundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                     nodeRank +"});}");
+            LOGGER.info("Participated to round :" + roundNumber + " rank :" + nodeRank );
+
         }
 
         else if(myState == DistributedConsensus.roundStatuses.FINISHED){
+            LOGGER.info("Waiting for HB or Start any message to follow up and catch a leader failure" );
             System.out.println("WAITING FOR HBs :: WILL JOIN TO NEXT ROUND" + " :: " +  java.time.LocalTime.now());
             startHeartbeatListener();
         }
         else{
-            LOGGER.error("LeaderCandidate" +
-                        " " + getNodeId() + " WRONG STATE for last round");
+            LOGGER.error("WRONG STATE found for last round");
             System.out.println("ERROR :: WRONG STATE");
         }
     }
@@ -72,35 +83,38 @@ public class LeaderCandidate extends ConsensusApplication{
                 if (!skipARound){
                     //to ensure the round number is incremented once for skipping round
                     this.roundNumber ++;
+                    LOGGER.info("Round number is increment for participate round " + roundNumber);
                     skipARound = true;
 
                 }
                 System.out.println("SOMEONE HAS STARTED NEW ROUND");
-                LOGGER.info("LeaderCandidate of " + getNodeId() + " skipping the round " + roundNumber);
+                LOGGER.info("Could not participate to round. Skipping the round");
                 listeningThread.interrupt();
                 return false;
             }
 
 //            System.out.println("FIRST MEMBER IS " + result.getMember("firstCandidate").toString());
             if (result.getMember("firstCandidate").toString().equals(getNodeId()) && !timeoutCounted){
+                long timeout = 500;
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(timeout);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 this.timeoutCounted = true;
                 dcf.writeACommand(this.roundNumber + ",result.timeout = true;");
-                LOGGER.info("LeaderCandidate " + getNodeId() + " wrote timeout");
+                LOGGER.info("Waited " + timeout + " wrote result.timeout = true; to close the vote counting");
                 System.out.println("WROTE TIMEOUT " + ":: " +  java.time.LocalTime.now());
                 return false;
 
             }
             else{
+                LOGGER.info("Leader is not yet decided");
                 return checkConsensus(result);
             }
         }
         else{
-            LOGGER.error("onReceive() WHEN LEADER IS THERE.");
+            LOGGER.error("onReceive() when LEADER is a leader.");
             System.out.println("ERROR :: onReceive() WHEN LEADER IS THERE.");
             return false;
         }
@@ -119,7 +133,6 @@ public class LeaderCandidate extends ConsensusApplication{
 
     @Override
     public void handleHeartbeat() {
-        LOGGER.info("LeaderCandidate " + getNodeId() + " found HB");
         this.listeningThread.interrupt();
     }
 
@@ -129,7 +142,7 @@ public class LeaderCandidate extends ConsensusApplication{
     }
 
     public void startHeartbeatSender(){
-        LOGGER.info("LeaderCandidate " + getNodeId() + " started sending HB");
+        LOGGER.info("Started sending HB");
         while (true) {
             System.out.println("ALIVE " + ":: " +  java.time.LocalTime.now());
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
@@ -137,17 +150,16 @@ public class LeaderCandidate extends ConsensusApplication{
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
-                LOGGER.error("LeaderCandidate " + getNodeId() + " was interrupted while sending HB");
+                LOGGER.error("Leader was interrupted while sending HB");
                 e.printStackTrace();
             }
         }
     }
 
     public void startHeartbeatListener(){
-        LOGGER.info("LeaderCandidate " + getNodeId() + " started listening to HB");
+        LOGGER.info("Started listening to HB");
         this.listeningThread = new Thread(new HeartbeatListener(this));
         this.listeningThread.start();
-
     }
 
     public void cleanRound(){
@@ -155,7 +167,6 @@ public class LeaderCandidate extends ConsensusApplication{
         this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
         this.timeoutCounted = false;
         this.electedLeader = null;
-        LOGGER.info("LeaderCandidate" + getNodeId() + " cleaned round status");
     }
 
     public void startNewRound(){
@@ -165,7 +176,7 @@ public class LeaderCandidate extends ConsensusApplication{
 //            this.electedLeader = null; //ALREADY HANDLED BY HeartbeatListener
 //            this.timeoutCounted = false;
             this.roundNumber ++;
-            LOGGER.info("LeaderCandidate" + getNodeId() + " participated to new round.");
+            LOGGER.info("Participated to new round.");
             int nodeRank = (int)(1 + Math.random()*100);
             System.out.println("NEW ELECTION :: ROUND NUMBER IS " + roundNumber + " MY RANK IS " + nodeRank + " :: " +  java.time.LocalTime.now());
             dcf.writeACommand(roundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
@@ -200,7 +211,8 @@ public class LeaderCandidate extends ConsensusApplication{
     }
 
     public static void main(String[] args){
-        String id = UUID.randomUUID().toString();
-        LeaderCandidate.electLeader(id, args[0], args[1]);
+
+        String node_id = System.getProperty("id");
+        LeaderCandidate.electLeader(node_id, args[0], args[1]);
     }
 }
