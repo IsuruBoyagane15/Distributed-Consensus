@@ -25,7 +25,7 @@ public abstract class ConsensusApplication {
 
     public abstract void participate(DistributedConsensus.roundStatuses myState, int myRoundNumber, String myRoundCodes);
 
-    public abstract void cleanRound();
+    public abstract void cleanRound(int roundNumber);
 
     public String getKafkaTopic() {
         return kafkaTopic;

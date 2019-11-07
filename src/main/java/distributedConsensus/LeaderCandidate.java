@@ -162,11 +162,12 @@ public class LeaderCandidate extends ConsensusApplication{
         this.listeningThread.start();
     }
 
-    public void cleanRound(){
+    public void cleanRound(int roundNumber){
         this.setRuntimeJsCode(initialJsCode); // IN EACH NEW ROUND JS SHOULD BE RESET
         this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
         this.timeoutCounted = false;
         this.electedLeader = null;
+        LOGGER.info("Cleaned round data of round number " + roundNumber);
     }
 
     public void startNewRound(){

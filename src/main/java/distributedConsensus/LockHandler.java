@@ -44,7 +44,7 @@ public class LockHandler extends ConsensusApplication{
     }
 
     @Override
-    public void cleanRound() {
+    public void cleanRound(int roundNumber) {
 
     }
 
