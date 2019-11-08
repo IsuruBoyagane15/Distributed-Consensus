@@ -9,10 +9,11 @@ import java.util.UUID;
 
 public class LeaderCandidate extends ConsensusApplication{
 
-    static{
-        String id = UUID.randomUUID().toString();
-        System.setProperty("id", id);
-    }
+//    static{
+//        String id = UUID.randomUUID().toString();
+//        System.setProperty("id", id);
+//    }
+
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
     private boolean skipARound;
     private DistributedConsensus.roundStatuses joiningState;
@@ -212,8 +213,6 @@ public class LeaderCandidate extends ConsensusApplication{
     }
 
     public static void main(String[] args){
-
-        String node_id = System.getProperty("id");
-        LeaderCandidate.electLeader(node_id, args[0], args[1]);
+        LeaderCandidate.electLeader(args[0], args[1], args[2]);
     }
 }
