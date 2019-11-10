@@ -71,17 +71,22 @@ public class Tester {
     }
 
     public void startNewProcess(String jarLocation, String kafkaServerAddress, String kafkaTopic){
-        String nodeId = UUID.randomUUID().toString();
-        System.setProperty("id", nodeId);
-        System.out.println("Id of the new process : " + nodeId);
-        ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
-        try {
-            Process process = processBuilder.start();
-            this.activeProcesses.put(nodeId,process);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (this.activeProcesses.size() < 26){
+            String nodeId = UUID.randomUUID().toString();
+            System.setProperty("id", nodeId);
+            System.out.println("Id of the new process : " + nodeId);
+            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
+            try {
+                Process process = processBuilder.start();
+                this.activeProcesses.put(nodeId,process);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Processes after adding new one : " + activeProcesses);
         }
-        System.out.println("Processes after adding new one : " + activeProcesses);
+        else{
+            System.out.println("Maximum number of processes are running");
+        }
 
     }
 
