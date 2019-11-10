@@ -70,7 +70,7 @@ public class Tester {
             new Thread(consuming).start();
     }
 
-    public void addNewProcess(String jarLocation, String kafkaServerAddress, String kafkaTopic){
+    public void startNewProcess(String jarLocation, String kafkaServerAddress, String kafkaTopic){
         String nodeId = UUID.randomUUID().toString();
         System.setProperty("id", nodeId);
         System.out.println("Id of the new process : " + nodeId);
@@ -105,7 +105,7 @@ public class Tester {
         Tester tester = new Tester(args[0], args[1], args[2]);
         tester.read();
 
-        tester.addNewProcess(tester.jarLocation, tester.kafkaServerAddress, tester.kafkaTopic);
+        tester.startNewProcess(tester.jarLocation, tester.kafkaServerAddress, tester.kafkaTopic);
         try {
             Thread.sleep(8000);
         } catch (InterruptedException e) {
