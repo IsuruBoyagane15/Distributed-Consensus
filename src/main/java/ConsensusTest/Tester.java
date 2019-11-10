@@ -102,6 +102,7 @@ public class Tester {
         else{
             Process processToBeKilled = activeProcesses.get(nodeId);
             processToBeKilled.destroy();
+            activeProcesses.remove(nodeId);
             System.out.println("Processes after killing one : " + activeProcesses);
         }
     }
