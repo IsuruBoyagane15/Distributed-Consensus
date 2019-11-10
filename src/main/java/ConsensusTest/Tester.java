@@ -74,7 +74,7 @@ public class Tester {
         String nodeId = UUID.randomUUID().toString();
         System.setProperty("id", nodeId);
         System.out.println("Id of the new process : " + nodeId);
-        ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
+        ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
         try {
             Process process = processBuilder.start();
             this.activeProcesses.put(nodeId,process);

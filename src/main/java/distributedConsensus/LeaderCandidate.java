@@ -209,7 +209,7 @@ public class LeaderCandidate extends ConsensusApplication{
                         "result;",
                 kafkaServerAddress, kafkaTopic);
 
-        LOGGER.info("LeaderCandidate of " + System.getProperty("id") + " started");
+        LOGGER.info("LeaderCandidate of " + nodeId + " started");
         DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(leaderCandidate);
         consensusFramework.startRound();
     }
