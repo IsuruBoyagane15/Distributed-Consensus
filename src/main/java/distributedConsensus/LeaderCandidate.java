@@ -104,13 +104,13 @@ public class LeaderCandidate extends ConsensusApplication{
                 }
                 this.timeoutCounted = true;
                 dcf.writeACommand(this.roundNumber + ",result.timeout = true;");
-                LOGGER.info("Waited " + timeout + " wrote result.timeout = true; to close the vote counting");
+                LOGGER.info("Waited " + timeout + "ms and wrote \"result.timeout = true;\" to close the vote counting");
                 System.out.println("WROTE TIMEOUT " + ":: " +  java.time.LocalTime.now());
                 return false;
 
             }
             else{
-                LOGGER.info("Leader is not yet decided");
+                LOGGER.info("Leader is not decided yet");
                 return checkConsensus(result);
             }
         }
@@ -124,6 +124,7 @@ public class LeaderCandidate extends ConsensusApplication{
     @Override
     public void onConsensus(Value value) {
         this.electedLeader = value.getMember("value").toString();
+        LOGGER.info(this.electedLeader + " is elected as the leader");
         if (value.getMember("value").toString().equals(getNodeId())) {
             this.startHeartbeatSender();
         }
@@ -208,7 +209,7 @@ public class LeaderCandidate extends ConsensusApplication{
                         "result;",
                 kafkaServerAddress, kafkaTopic);
 
-        LOGGER.info("LeaderCandidate of " + nodeId + " started");
+        LOGGER.info("LeaderCandidate of " + System.getProperty("id") + " started");
         DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(leaderCandidate);
         consensusFramework.startRound();
     }

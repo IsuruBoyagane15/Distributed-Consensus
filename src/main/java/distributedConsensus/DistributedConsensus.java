@@ -145,7 +145,7 @@ public class DistributedConsensus{
                                     if (recordRoundNumber>latestRoundNumber){
                                         latestRoundsJsCode = recordMessage;
                                         latestRoundNumber = recordRoundNumber;
-                                        LOGGER.info("Found newer round with round number " + latestRoundNumber + "in the Kafka log before CHECK record");
+                                        LOGGER.info("Found newer round with round number " + latestRoundNumber + " in the Kafka log before CHECK record");
                                     }
                                     else if(recordRoundNumber==latestRoundNumber){
                                         latestRoundsJsCode += recordMessage;
@@ -160,12 +160,11 @@ public class DistributedConsensus{
                             String recordMessage = recordContent[1]; //ALIVE,nodeId or clean JS
 
                             if (recordRoundNumber > ongoingRoundNumber[0]){
-                                //log for cleaning ground is done in method level
-                                distributedNode.cleanRound(ongoingRoundNumber[0]);
+                                //CLEAN ALL ROUND RELATED DATA IN CONSENSUS APPLICATION WHEN THE FIRST MESSAGE TO LATEST ROUND COMES
                                 ongoingRoundNumber[0] = recordRoundNumber;
+                                distributedNode.cleanRound(ongoingRoundNumber[0]);
                             }
                             if(recordMessage.startsWith("ALIVE")){
-                                //log for HB ground is done in method level
                                 distributedNode.handleHeartbeat();
                                 LOGGER.info("Got HB");
 
