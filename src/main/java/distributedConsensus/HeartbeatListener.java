@@ -20,7 +20,6 @@ public class HeartbeatListener extends Thread {
 
             follower.startNewRound();
         } catch (InterruptedException e) {
-            System.out.println("GOT HB :: " + java.time.LocalTime.now());
             run();
         }
     }
