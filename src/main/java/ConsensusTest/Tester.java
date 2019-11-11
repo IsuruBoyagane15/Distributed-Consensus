@@ -13,6 +13,10 @@ import java.util.UUID;
 
 public class Tester {
 
+    static {
+        System.setProperty("test_run_id", java.time.LocalDateTime.now().toString());
+    }
+
     private final String kafkaServerAddress;
     private final Context jsContext;
     private final int maxProcessCount;
@@ -80,7 +84,7 @@ public class Tester {
             String nodeId = UUID.randomUUID().toString();
             System.setProperty("id", nodeId);
             System.out.println("Id of the new process : " + nodeId);
-            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
+            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, "-Dtest_run_id="+ System.getProperty("test_run_id"), jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
             try {
                 Process process = processBuilder.start();
                 this.activeProcesses.put(nodeId,process);
