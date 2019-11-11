@@ -117,6 +117,7 @@ public class LeaderCandidate extends ConsensusApplication{
         else{
             LOGGER.error("onReceive() when LEADER is a leader.");
             System.out.println("ERROR :: onReceive() WHEN LEADER IS THERE.");
+            System.exit(-1);
             return false;
         }
     }
