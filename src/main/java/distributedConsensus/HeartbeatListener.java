@@ -12,15 +12,31 @@ public class HeartbeatListener extends Thread {
     }
 
     public void run() {
-        try {
-            Thread.sleep(2000);
-            System.out.println("LEADER FAILED :: " + java.time.LocalTime.now());
-            follower.setElectedLeader(null);
-            LOGGER.info("Identified leader FAILURE");
-
-            follower.startNewRound();
-        } catch (InterruptedException e) {
-            run();
+        int i = 0;
+        while(i<=200){
+            if (i == 200){
+                System.out.println("Identify leader FAILURE; Listener thread should finish here :: " + java.time.LocalTime.now());
+                LOGGER.info("Identified leader FAILURE; Listener thread should finish here");
+                follower.setElectedLeader(null);
+                follower.startNewRound();
+                break;
+            }
+            else{
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    if (follower.isLateToTimeout()){
+                        follower.setLateToTimeout(false);
+                        System.out.println("Late to timeout; Listener thread should finish here :: " + java.time.LocalTime.now());
+                        LOGGER.info("Late to timeout; Listener thread should finish here");
+                        break;
+                    }
+                    else{
+                        i = 0;
+                    }
+                }
+            }
+            i++;
         }
     }
 }

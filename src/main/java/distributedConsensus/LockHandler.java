@@ -1,27 +1,23 @@
 package distributedConsensus;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.log4j.Logger;
 import org.graalvm.polyglot.Value;
-
 import java.util.UUID;
 
 public class LockHandler extends ConsensusApplication{
+    private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
+    private boolean terminate;
+
     public LockHandler(String nodeId, String runtimeJsCode, String evaluationJsCode, String kafkaServerAddress, String kafkaTopic) {
         super(nodeId, runtimeJsCode, evaluationJsCode, kafkaServerAddress, kafkaTopic);
-    }
-
-    @Override
-    public void handleHeartbeat() {
-
+        this.terminate = false;
     }
 
     @Override
     public boolean checkConsensus(Value result) {
         return result.asBoolean();
-    }
-
-    @Override
-    public boolean onReceiving(Value value) {
-        return checkConsensus(value);
     }
 
     @Override
@@ -36,30 +32,49 @@ public class LockHandler extends ConsensusApplication{
             }
         }
         dcf.writeACommand("lockStatuses.delete(\""+ this.getNodeId() + "\"" + ");");
-        dcf.setTerminate(true);
+        this.setTerminate(true);
     }
 
-    @Override
-    public void participate(DistributedConsensus.roundStatuses nextRoundStatus, int nextRoundNumber, String nextRoundCode) {
+    public void start(){
+        DistributedConsensus distributedConsensus = DistributedConsensus.getDistributeConsensus(this);
+        Runnable consuming = () -> {
+            try {
+                while (!terminate) {
+                    ConsumerRecords<String, String> records = distributedConsensus.getMessages();
+                    for (ConsumerRecord<String, String> record : records) {
+                        System.out.println(record.value());
+                        Value result = distributedConsensus.evaluateJsCode(record.value());
+                        boolean consensusAchieved = this.checkConsensus(result);
+                        if (consensusAchieved) {
+                            this.onConsensus(result);
+                        }
+                    }
+                }
+            } catch(Exception exception) {
+                LOGGER.error("Exception occurred :", exception);
+                System.out.println(exception);
+            }finally {
+                distributedConsensus.closeConsumer();
+            }
+        };
+        new Thread(consuming).start();
     }
 
-    @Override
-    public void cleanRound(int roundNumber) {
-
+    public void setTerminate(boolean terminate){
+        this.terminate = terminate;
     }
 
     public static void handleLock(String nodeId, String kafkaServerAddress, String kafkaTopic){
             LockHandler lockHandler = new LockHandler(nodeId, "var lockStatuses = new Set([]); result = false;",
-//            "console.log(\"queue is :\" + Array.from(lockStatuses));" +
+            "console.log(\"queue is :\" + Array.from(lockStatuses));" +
                     "if(Array.from(lockStatuses)[0] === \"" + nodeId + "\"){" +
                     "result = true;" +
                     "}" +
-                            "console.log(\"nodeRanks is :\" + Array.from(nodeRanks));" +
                     "result;", kafkaServerAddress, kafkaTopic);
 
         System.out.println("My id is " + lockHandler.getNodeId());
         DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(lockHandler);
-        consensusFramework.start();
+        lockHandler.start();
         consensusFramework.writeACommand("lockStatuses.add(\""+  lockHandler.getNodeId() + "\"" + ");");
     }
 
