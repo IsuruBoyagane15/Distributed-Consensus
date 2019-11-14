@@ -10,10 +10,11 @@ import java.util.UUID;
 
 public class LeaderCandidate extends ConsensusApplication{
 
-    static{
-        String id = UUID.randomUUID().toString();
-        System.setProperty("id", id);
-    }
+    // Running using the Tester; id is given by Tester
+//    static{
+//        String id = UUID.randomUUID().toString();
+//        System.setProperty("id", id);
+//    }
 
     private boolean lateToTimeout;
     enum roundStatuses {
@@ -354,6 +355,6 @@ public class LeaderCandidate extends ConsensusApplication{
     }
 
     public static void main(String[] args){
-        LeaderCandidate.electLeader(System.getProperty("id"), args[0], args[1]);
+        LeaderCandidate.electLeader(args[0], args[1], args[2]);
     }
 }
