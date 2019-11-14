@@ -22,16 +22,14 @@ public class Tester {
     private final int maxProcessCount;
     private String immortalProcess;
     private KafkaConsumer<String, String> kafkaConsumer;
-    private String jarLocation;
+    private String jarConfig;
     private final String kafkaTopic;
     private boolean terminate;
     private HashMap<String, Process> activeProcesses;
     private boolean maxProcessCountReached;
 
-
-
     public Tester(String jarLocation, String kafkaServerAddress, String kafkaTopic, int maxProcessCount){
-        this.jarLocation = jarLocation;
+        this.jarConfig = jarLocation;
         this.kafkaTopic = kafkaTopic;
         this.kafkaServerAddress = kafkaServerAddress;
         this.kafkaConsumer = ConsumerGenerator.generateConsumer(kafkaServerAddress, kafkaTopic, "tester");
@@ -44,9 +42,8 @@ public class Tester {
     }
 
     public void read(){
-        final int[] roundNumber = {-1};
             Runnable consuming = () -> {
-
+                int roundNumber = -1;
                 try {
                     while (!terminate) {
                         ConsumerRecords<String, String> records = kafkaConsumer.poll(10);
@@ -56,8 +53,8 @@ public class Tester {
                                 int recordNumber = Integer.parseInt(recordContent[0]);
                                 String recordMessage = recordContent[1];
                                 if(!recordMessage.startsWith("ALIVE")){
-                                    if (recordNumber > roundNumber[0]){
-                                        roundNumber[0] = recordNumber;
+                                    if (recordNumber > roundNumber){
+                                        roundNumber = recordNumber;
                                         this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
                                     }
                                     else{
@@ -67,7 +64,6 @@ public class Tester {
                                     }
                                 }
                             }
-
                         }
                     }
                 } catch(Exception exception) {
@@ -96,7 +92,6 @@ public class Tester {
         else{
             System.out.println("Maximum number of processes are running");
         }
-
     }
 
     public void killProcess(){
@@ -106,7 +101,6 @@ public class Tester {
 
         if (nodeId.equals(this.immortalProcess)){
             System.out.println("Can't kill " + nodeId);
-            killProcess();
         }
         else{
             Process processToBeKilled = activeProcesses.get(nodeId);
@@ -130,10 +124,13 @@ public class Tester {
 
             if(randInt> tester.activeProcesses.size()){
                 if(!tester.maxProcessCountReached){
-                    tester.startNewProcess(tester.jarLocation, tester.kafkaServerAddress, tester.kafkaTopic);
+                    tester.startNewProcess(tester.jarConfig, tester.kafkaServerAddress, tester.kafkaTopic);
                     if( tester.activeProcesses.size() == tester.maxProcessCount){
                         tester.maxProcessCountReached = true;
                     }
+                }
+                else{
+                    System.out.println("Maximum Process count is achieved.No more processes will saart");
                 }
             }
             else{
@@ -148,9 +145,5 @@ public class Tester {
                 e.printStackTrace();
             }
         }
-
-
-
-
     }
 }
