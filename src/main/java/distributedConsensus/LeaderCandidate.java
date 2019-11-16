@@ -60,24 +60,24 @@ public class LeaderCandidate extends ConsensusApplication{
         this.setRuntimeJsCode(initialJsCode);
 
         if (myState == roundStatuses.NEW){
-            LOGGER.info("Participated to "+ myState + " round :" + roundNumber + "; rank is " + nodeRank  );
+//            LOGGER.info("Participated to "+ myState + " round :" + roundNumber + "; rank is " + nodeRank  );
             consensusFramework.writeACommand(proposedRoundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                     nodeRank +"});}");
         }
 
         else if(myState == roundStatuses.ONGOING){
-            LOGGER.info("Participated to "+ myState + " round :" + roundNumber + "JsCode : " + myRoundCodes + "; rank is " + nodeRank);
+//            LOGGER.info("Participated to "+ myState + " round :" + roundNumber + "JsCode : " + myRoundCodes + "; rank is " + nodeRank);
             setRuntimeJsCode(initialJsCode + myRoundCodes);
             consensusFramework.writeACommand(proposedRoundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                     nodeRank +"});}");
         }
 
         else if(myState == roundStatuses.FINISHED){
-            LOGGER.info("Waiting for HBs of " + myState + " round " + roundNumber + "; Or will join to round " + (roundNumber + 1));
+//            LOGGER.info("Waiting for HBs of " + myState + " round " + roundNumber + "; Or will join to round " + (roundNumber + 1));
             startHeartbeatListener();
         }
         else{
-            LOGGER.error("WRONG STATE found for last round");
+//            LOGGER.error("WRONG STATE found for last round");
             System.exit(-1);
         }
     }
@@ -95,7 +95,7 @@ public class LeaderCandidate extends ConsensusApplication{
                 }
                 this.timeoutCounted = true;
                 dcf.writeACommand(this.roundNumber + ",result.timeout = true;");
-                LOGGER.info("Waited " + timeout + "ms and wrote \"result.timeout = true;\" to close the vote counting");
+//                LOGGER.info("Waited " + timeout + "ms and wrote \"result.timeout = true;\" to close the vote counting");
                 return false;
             }
             else{
@@ -103,7 +103,7 @@ public class LeaderCandidate extends ConsensusApplication{
             }
         }
         else{
-            LOGGER.info("Record of same round " + roundNumber + "after leader is elected");
+//            LOGGER.info("Record of same round " + roundNumber + "after leader is elected");
             return false;
         }
     }
@@ -111,7 +111,7 @@ public class LeaderCandidate extends ConsensusApplication{
     @Override
     public void onConsensus(Value value) {
         this.electedLeader = value.getMember("value").toString();
-        LOGGER.info(this.electedLeader + " is elected as the leader");
+        LOGGER.info(getNodeId() + " :: " + this.electedLeader + " is elected as the leader");
         if (value.getMember("value").toString().equals(getNodeId())) {
             this.startHeartbeatSender();
         }
@@ -157,7 +157,7 @@ public class LeaderCandidate extends ConsensusApplication{
                             //IDENTIFYING THE ROUND
                             if (record.value().equals(checkRecord)) {
 
-                                LOGGER.info("Found check record : " + checkRecord);
+//                                LOGGER.info("Found check record : " + checkRecord);
 
                                 //TAKE DECISION ON ROUND STATUS BASED ON COLLECTED LAST ROUND CODES
                                 if (latestRoundsJsCode.equals("")){
@@ -195,7 +195,7 @@ public class LeaderCandidate extends ConsensusApplication{
                                 if (!recordMessage.startsWith("ALIVE")){
                                     if (recordRoundNumber>latestRoundNumber){
                                         //THERE IS A NEW ROUND IN KAFKA
-                                        LOGGER.info("Discard " + latestRoundNumber +", since there is a new round in kafka log before the check record");
+//                                        LOGGER.info("Discard " + latestRoundNumber +", since there is a new round in kafka log before the check record");
                                         latestRoundsJsCode = recordMessage;
                                         latestRoundNumber = recordRoundNumber;
                                     }
@@ -218,15 +218,15 @@ public class LeaderCandidate extends ConsensusApplication{
                                 // NEWLY JOINED NODES WITH FINISHED STATE FIRST EXECUTE THIS
                                 if (recordRoundNumber == this.roundNumber){
                                     //RECORDS (HBs) WITH ROUND NUMBER AS proposedRoundNumber
-                                    LOGGER.info("Got HB of FINISHED round");
+//                                    LOGGER.info("Got HB of FINISHED round");
                                     this.handleHeartbeat();
                                 }
                                 else if(recordRoundNumber == this.roundNumber + 1){
-                                    LOGGER.info("Got new round message while in FINISHED state");
+//                                    LOGGER.info("Got new round message while in FINISHED state");
                                     this.setLateToTimeout(true);
                                     if (this.heartbeatListener.isAlive()){
                                         //TERMINATE LISTENER STARTED FOR FINISHED, TO MOVE TO NEW ROUND
-                                        LOGGER.info("Late to timeout the round " + this.roundNumber);
+//                                        LOGGER.info("Late to timeout the round " + this.roundNumber);
                                         this.heartbeatListener.interrupt();
                                     }
                                     //WAIT UNTIL LISTENER IS FINISHED
@@ -239,14 +239,13 @@ public class LeaderCandidate extends ConsensusApplication{
                                         this.onConsensus(result);
                                     }
                                     else{
-                                        LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
+//                                        LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
                                     }
                                 }
                             }
                             else{
                                 //NON-FINISHED STATE NODES IN ANY ROUND
                                 if (recordRoundNumber >roundNumber){
-                                    System.out.println(recordRoundNumber+ " " + roundNumber);
                                     //CLEAN ALL ROUND RELATED DATA IN CONSENSUS APPLICATION WHEN THE FIRST MESSAGE TO LATEST ROUND COMES
                                     this.heartbeatListener.join();
                                     this.cleanRound(recordRoundNumber);
@@ -254,27 +253,27 @@ public class LeaderCandidate extends ConsensusApplication{
                                 if(recordMessage.startsWith("ALIVE")){
                                     if (this.roundNumber == recordRoundNumber){
                                         this.handleHeartbeat();
-                                        LOGGER.info("Got HB");
+//                                        LOGGER.info("Got HB");
                                     }
                                     else{
-                                        LOGGER.error("Error: ALIVE with wrong round number");
+                                        LOGGER.error(getNodeId() + " :: Error: ALIVE with wrong round number");
                                         System.exit(-1);
                                     }
                                 }
                                 else{
                                     if(this.roundNumber == recordRoundNumber){
-                                        LOGGER.info("Evaluating records of current round with round number : " + recordRoundNumber);
+//                                        LOGGER.info("Evaluating records of current round with round number : " + recordRoundNumber);
                                         Value result = distributedConsensus.evaluateJsCode(recordMessage);
                                         boolean consensusAchieved = this.onReceiving(result);
                                         if (consensusAchieved) {
                                             this.onConsensus(result);
                                         }
                                         else{
-                                            LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
+//                                            LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
                                         }
                                     }
                                     else{
-                                        LOGGER.error("Error: Js record with wrong round number");
+//                                        LOGGER.error("Error: Js record with wrong round number");
                                         System.exit(-1);
                                     }
                                 }
@@ -283,7 +282,7 @@ public class LeaderCandidate extends ConsensusApplication{
                     }
                 }
             } catch(Exception exception) {
-                LOGGER.error("Exception occurred :", exception);
+//                LOGGER.error("Exception occurred :", exception);
             }finally {
                 distributedConsensus.closeConsumer();
             }
@@ -292,22 +291,22 @@ public class LeaderCandidate extends ConsensusApplication{
     }
 
     public void startHeartbeatSender(){
-        LOGGER.info("Started sending HB");
+//        LOGGER.info("Started sending HB");
         while (true) {
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
             consensusFramework.writeACommand(roundNumber + ",ALIVE,"+ getNodeId());
-            LOGGER.info("wrote HB");
+//            LOGGER.info("wrote HB");
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
-                LOGGER.error("Leader was interrupted while sending HB :: " + java.time.LocalTime.now());
+//                LOGGER.error("Leader was interrupted while sending HB :: " + java.time.LocalTime.now());
                 e.printStackTrace();
             }
         }
     }
 
     public void startHeartbeatListener(){
-        LOGGER.info("Started HB listener");
+//        LOGGER.info("Started HB listener");
         this.heartbeatListener = new HeartbeatListener(this);
         this.heartbeatListener.start();
     }
@@ -319,7 +318,7 @@ public class LeaderCandidate extends ConsensusApplication{
         this.timeoutCounted = false;
         this.electedLeader = null;
         this.lateToTimeout = false;
-        LOGGER.info("Cleaned round attributes of round number " + (roundNumber -1));
+//        LOGGER.info("Cleaned round attributes of round number " + (roundNumber -1));
     }
 
     public void startNewRound(){
@@ -327,7 +326,7 @@ public class LeaderCandidate extends ConsensusApplication{
         int nodeRank = (int)(1 + Math.random()*100);
         dcf.writeACommand((roundNumber+1) + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                 nodeRank +"})};");
-        LOGGER.info("Participated to new round "+ (roundNumber + 1) + "; my rank is " + nodeRank);
+//        LOGGER.info("Participated to new round "+ (roundNumber + 1) + "; my rank is " + nodeRank);
     }
 
     public static void electLeader(String nodeId, String kafkaServerAddress, String kafkaTopic){

@@ -15,7 +15,7 @@ public class HeartbeatListener extends Thread {
         int i = 0;
         while(i<=200){
             if (i == 200){
-                LOGGER.info("Identified leader FAILURE; Listener thread should finish here");
+                LOGGER.info(follower.getNodeId() + " Identified leader FAILURE");
                 follower.setElectedLeader(null);
                 follower.startNewRound();
                 break;
@@ -26,7 +26,7 @@ public class HeartbeatListener extends Thread {
                 } catch (InterruptedException e) {
                     if (follower.isLateToTimeout()){
                         follower.setLateToTimeout(false);
-                        LOGGER.info("Late to timeout; Listener thread should finish here");
+                        LOGGER.info("Late to timeout;");
                         break;
                     }
                     else{
