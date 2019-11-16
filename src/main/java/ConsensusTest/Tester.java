@@ -56,9 +56,11 @@ public class Tester {
                                     if (recordNumber > roundNumber){
                                         roundNumber = recordNumber;
                                         this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
+                                        System.out.println("Cannot kill " + this.immortalProcess);
                                     }
                                     else{
                                         if (recordMessage.equals("result.timeout = true;")){
+                                            System.out.println("Can kill " + this.immortalProcess);
                                             this.immortalProcess = null;
                                         }
                                     }
@@ -79,8 +81,7 @@ public class Tester {
         String nodeId = UUID.randomUUID().toString();
         System.setProperty("id", nodeId);
         System.out.println(java.time.LocalTime.now() + " :: Id of the new process : " + nodeId);
-//            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, "-Dtest_run_id="+ System.getProperty("test_run_id"), jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
-        ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Dtest_run_id="+ System.getProperty("test_run_id"), jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
+            ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, "-Dtest_run_id="+ System.getProperty("test_run_id"), jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
         try {
             Process process = processBuilder.start();
             this.activeProcesses.put(nodeId,process);
@@ -120,15 +121,16 @@ public class Tester {
             e.printStackTrace();
         }
 
+        double factor = 0.25;
         while(!tester.terminate){
 
-            int randInt = (int)(1 + Math.random()*tester.maxProcessCount);
-
-            if(randInt> tester.maxProcessCount/4){
+            double rand = Math.random();
+            if(rand> factor){
                 if(!tester.maxProcessCountReached){
                     tester.startNewProcess(tester.jarConfig, tester.kafkaServerAddress, tester.kafkaTopic);
                     if( tester.activeProcesses.size() == tester.maxProcessCount){
                         tester.maxProcessCountReached = true;
+                        factor = 0.75;
                     }
                 }
                 else{
