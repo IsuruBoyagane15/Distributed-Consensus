@@ -1,4 +1,4 @@
-package ConsensusTest;
+package consensusTest;
 
 import distributedConsensus.ConsumerGenerator;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
