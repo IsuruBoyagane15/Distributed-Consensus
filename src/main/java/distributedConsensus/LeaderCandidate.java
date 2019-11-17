@@ -199,8 +199,11 @@ public class LeaderCandidate extends ConsensusApplication{
                                         this.onConsensus(result);
                                     }
                                     else{
-//                                        LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
+                                        LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
                                     }
+                                }
+                                else{
+                                    LOGGER.error("Record with wrong round number while in FINISHED state");
                                 }
                             }
                             else{
