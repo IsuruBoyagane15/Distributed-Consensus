@@ -6,11 +6,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.graalvm.polyglot.Value;
 import org.apache.log4j.Logger;
 
-import java.util.UUID;
-
 public class LeaderCandidate extends ConsensusApplication{
 
-    private boolean lateToTimeout;
     enum roundStatuses {
         ONGOING,
         NEW,
@@ -36,14 +33,6 @@ public class LeaderCandidate extends ConsensusApplication{
 
     public void setElectedLeader(String electedLeader) {
         this.electedLeader = electedLeader;
-    }
-
-    public boolean isLateToTimeout() {
-        return lateToTimeout;
-    }
-
-    public void setLateToTimeout(boolean lateToTimeout) {
-        this.lateToTimeout = lateToTimeout;
     }
 
     public void participate(int lastRoundNumber, String lastRoundJsCodes) {
@@ -194,7 +183,7 @@ public class LeaderCandidate extends ConsensusApplication{
                                 else if(recordRoundNumber == this.roundNumber + 1){
                                     //SOMEONE HAS TIMEOUT BEFORE THIS NODE
                                     LOGGER.info("Got new round message while in FINISHED state");
-                                    this.setLateToTimeout(true);
+                                    this.heartbeatListener.setLateToTimeout(true);
                                     if (this.heartbeatListener.isAlive()){
                                         //TERMINATE LISTENER STARTED FOR FINISHED, TO MOVE TO NEW ROUND
                                         LOGGER.info("Late to timeout the round " + this.roundNumber);
@@ -288,7 +277,7 @@ public class LeaderCandidate extends ConsensusApplication{
         this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
         this.timeoutCounted = false;
         this.electedLeader = null;
-        this.lateToTimeout = false;
+        this.heartbeatListener.setLateToTimeout(false);
         LOGGER.info("Cleaned round attributes of round number " + (roundNumber -1));
     }
 

@@ -4,11 +4,17 @@ import org.apache.log4j.Logger;
 
 public class HeartbeatListener extends Thread {
     private LeaderCandidate follower;
+    private boolean lateToTimeout;
 
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
 
     public HeartbeatListener(LeaderCandidate follower){
         this.follower = follower;
+        this.lateToTimeout = false;
+    }
+
+    public void setLateToTimeout(boolean lateToTimeout) {
+        this.lateToTimeout = lateToTimeout;
     }
 
     public void run() {
@@ -24,8 +30,8 @@ public class HeartbeatListener extends Thread {
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException e) {
-                    if (follower.isLateToTimeout()){
-                        follower.setLateToTimeout(false);
+                    if (lateToTimeout){
+                        lateToTimeout = false;
                         LOGGER.info("Late to timeout;");
                         break;
                     }
