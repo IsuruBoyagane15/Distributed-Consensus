@@ -102,14 +102,10 @@ public class Tester {
             Process processToBeKilled = activeProcesses.get(nodeId);
             processToBeKilled.destroy();
             activeProcesses.remove(nodeId);
-            if (this.activeProcesses.size() == 0){
-                //FINISH TESTING
-                this.terminate = true;
-            }
         }
     }
 
-    public static void main(String args[]){
+    public static void main(String[] args){
         Tester tester = new Tester(args[0], args[1], args[2], Integer.parseInt(args[3]));
         tester.read();
 
@@ -152,6 +148,9 @@ public class Tester {
                 if(entry.getValue().isAlive()){
                     count++;
                 }
+            }
+            if (count == 0){
+                tester.terminate = true;
             }
 
             System.out.println(java.time.LocalTime.now() + " :: Number of active processes : " + count);

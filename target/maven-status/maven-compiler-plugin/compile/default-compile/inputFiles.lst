@@ -1,8 +1,8 @@
 /home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributedConsensus/LockHandler.java
 /home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributedConsensus/DistributedConsensus.java
-/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/ConsensusTest/Tester.java
 /home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributedConsensus/ConsensusApplication.java
 /home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributedConsensus/ProducerGenerator.java
 /home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributedConsensus/HeartbeatListener.java
+/home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/consensusTest/Tester.java
 /home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributedConsensus/ConsumerGenerator.java
 /home/isurub/IdeaProjects/distributedconsensus-se/src/main/java/distributedConsensus/LeaderCandidate.java
