@@ -5,6 +5,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -20,6 +21,9 @@ public class Tester {
     private final String kafkaServerAddress;
     private final Context jsContext;
     private final int maxProcessCount;
+    private final String initialJsCose;
+    private final String evaluationJsCode;
+    private String runtimeJsCode;
     private String immortalProcess;
     private KafkaConsumer<String, String> kafkaConsumer;
     private String jarConfig;
@@ -39,6 +43,23 @@ public class Tester {
         this.terminate = false;
         this.maxProcessCountReached = false;
         this.maxProcessCount = maxProcessCount;
+        this.initialJsCose = "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};";
+        this.evaluationJsCode = "if(Object.keys(nodeRanks).length != 0){" +
+                                    "result.firstCandidate = nodeRanks[0].client;" +
+                        "}" +
+                        "if(result.timeout){" +
+                                    "result.consensus=true;" +
+                                    "var leader = null;"+
+                                    "var maxRank = 0;"+
+                                    "for (var i = 0; i < nodeRanks.length; i++) {"+
+                                        "if(nodeRanks[i].rank > maxRank){"+
+                                            "result.value = nodeRanks[i].client;" +
+                                            "maxRank = nodeRanks[i].rank;" +
+                                        "}" +
+                                    "}" +
+                                "}" +
+                        "result;";
+        this.runtimeJsCode = initialJsCose;
     }
 
     public void read(){
@@ -57,11 +78,19 @@ public class Tester {
                                         roundNumber = recordNumber;
                                         this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
                                         System.out.println("Cannot kill " + this.immortalProcess);
+
+                                        runtimeJsCode = initialJsCose + recordMessage;
                                     }
                                     else{
                                         if (recordMessage.equals("result.timeout = true;")){
                                             System.out.println("Can kill " + this.immortalProcess);
                                             this.immortalProcess = null;
+                                        }
+                                        runtimeJsCode = runtimeJsCode + recordMessage;
+                                        Value result = jsContext.eval("js",runtimeJsCode + evaluationJsCode);
+                                        boolean leaderElected = result.getMember("consensus").asBoolean();
+                                        if (leaderElected){
+                                            System.out.println("Leader for round number :" + roundNumber + " is " + result.getMember("value"));
                                         }
                                     }
                                 }
