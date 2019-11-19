@@ -1,9 +1,0 @@
-distributedConsensus/LeaderCandidate.class
-distributedConsensus/LeaderCandidate$roundStatuses.class
-distributedConsensus/ProducerGenerator.class
-distributedConsensus/HeartbeatListener.class
-distributedConsensus/ConsensusApplication.class
-distributedConsensus/LockHandler.class
-distributedConsensus/ConsumerGenerator.class
-consensusTest/Tester.class
-distributedConsensus/DistributedConsensus.class
