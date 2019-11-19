@@ -1,4 +1,4 @@
-# Distribute-Consensus-Genaralized
+# Distribute-Consensus
 Distributed consensus algorithms and an API supports to implement algorithms using Kafka messaging. 
 
 Based on the nature of distributed algorithm (round based/non-round based) developer can use customized API of DistributedConsensus.
