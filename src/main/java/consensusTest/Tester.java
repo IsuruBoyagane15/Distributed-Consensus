@@ -77,20 +77,20 @@ public class Tester {
                                     if (recordNumber > roundNumber){
                                         roundNumber = recordNumber;
                                         this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
-                                        System.out.println("Cannot kill " + this.immortalProcess);
+                                        System.out.println(java.time.LocalTime.now() + " :: Cannot kill " + this.immortalProcess);
 
                                         runtimeJsCode = initialJsCose + recordMessage;
                                     }
                                     else{
                                         if (recordMessage.equals("result.timeout = true;")){
-                                            System.out.println("Can kill " + this.immortalProcess);
+                                            System.out.println(java.time.LocalTime.now() + " :: Can kill " + this.immortalProcess);
                                             this.immortalProcess = null;
                                         }
                                         runtimeJsCode = runtimeJsCode + recordMessage;
                                         Value result = jsContext.eval("js",runtimeJsCode + evaluationJsCode);
                                         boolean leaderElected = result.getMember("consensus").asBoolean();
                                         if (leaderElected){
-                                            System.out.println("Leader for round number :" + roundNumber + " is " + result.getMember("value"));
+                                            System.out.println(java.time.LocalTime.now() + " :: Leader for round number :" + roundNumber + " is " + result.getMember("value"));
                                         }
                                     }
                                 }
@@ -122,10 +122,10 @@ public class Tester {
     public void killProcess(){
         Object[] nodeIds = activeProcesses.keySet().toArray();
         Object nodeId = nodeIds[new Random().nextInt(nodeIds.length)];
-        System.out.println("Id of the process to be killed  : " + nodeId);
+        System.out.println(java.time.LocalTime.now() + " :: Id of the process to be killed  : " + nodeId);
 
         if (nodeId.equals(this.immortalProcess)){
-            System.out.println("Can't kill " + nodeId);
+            System.out.println(java.time.LocalTime.now() + " :: Can't kill " + nodeId);
         }
         else{
             Process processToBeKilled = activeProcesses.get(nodeId);
@@ -159,7 +159,7 @@ public class Tester {
                     }
                 }
                 else{
-                    System.out.println("Maximum Process count: " + tester.activeProcesses.size() + " is achieved.No more processes will start");
+                    System.out.println(java.time.LocalTime.now() + " :: Maximum Process count: " + tester.activeProcesses.size() + " is achieved.No more processes will start");
                 }
             }
             else{
