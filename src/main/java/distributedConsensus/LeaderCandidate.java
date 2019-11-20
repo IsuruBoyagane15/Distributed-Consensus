@@ -6,7 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.graalvm.polyglot.Value;
 import org.apache.log4j.Logger;
 
-public class LeaderCandidate extends ConsensusApplication{
+public class LeaderCandidate extends ConsensusApplication implements Runnable{
 
     enum roundStatuses {
         ONGOING,
@@ -15,7 +15,7 @@ public class LeaderCandidate extends ConsensusApplication{
     }
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
     private roundStatuses joiningState;
-    private boolean timeoutCounted;
+    private boolean timeoutCounted, terminate;
     private int roundNumber;
     private HeartbeatListener heartbeatListener;
     private String electedLeader;
@@ -29,6 +29,11 @@ public class LeaderCandidate extends ConsensusApplication{
         this.electedLeader = null;
         this.timeoutCounted = false; //FIRST LEADER CANDIDATE TO JOIN THAT ROUND WILL COUNT A TIMEOUT AND CLOSE THE VOTING BY WRITING IT TO KAFKA
         this.joiningState = null; //STATE OF THE ROUND WHEN NODE PARTICIPATED;
+        this.terminate = false;
+    }
+
+    public void setTerminate(boolean terminate) {
+        this.terminate = terminate;
     }
 
     public void setElectedLeader(String electedLeader) {
@@ -133,7 +138,7 @@ public class LeaderCandidate extends ConsensusApplication{
             int latestRoundNumber = 0;
 
             try {
-                while (true) {
+                while (!this.terminate) {
                     ConsumerRecords<String, String> records = distributedConsensus.getMessages();
                     for (ConsumerRecord<String, String> record : records) {
                         if (!correctRoundIdentified){
@@ -250,12 +255,14 @@ public class LeaderCandidate extends ConsensusApplication{
                 distributedConsensus.closeConsumer();
             }
         };
-        new Thread(consuming).start();
+        Thread consumer = new Thread(consuming);
+        consumer.setName(getNodeId() + "_consumer");
+        consumer.start();
     }
 
     public void startHeartbeatSender(){
         LOGGER.info("Started sending HB");
-        while (true) {
+        while (!this.terminate) {
             DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
             consensusFramework.writeACommand(roundNumber + ",ALIVE,"+ getNodeId());
             LOGGER.info("wrote HB");
@@ -271,6 +278,7 @@ public class LeaderCandidate extends ConsensusApplication{
     public void startHeartbeatListener(){
         LOGGER.info("Started HB listener");
         this.heartbeatListener = new HeartbeatListener(this);
+        this.heartbeatListener.setName(getNodeId() + "_HBListener");
         this.heartbeatListener.start();
     }
 
@@ -292,30 +300,7 @@ public class LeaderCandidate extends ConsensusApplication{
         LOGGER.info("Participated to new round "+ (roundNumber + 1) + "; my rank is " + nodeRank);
     }
 
-    public static void electLeader(String nodeId, String kafkaServerAddress, String kafkaTopic){
-
-        LeaderCandidate leaderCandidate = new LeaderCandidate(nodeId, "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};",
-
-                "if(Object.keys(nodeRanks).length != 0){" +
-                                    "result.firstCandidate = nodeRanks[0].client;" +
-                        "}" +
-                        "if(result.timeout){" +
-                                    "result.consensus=true;" +
-                                    "var leader = null;"+
-                                    "var maxRank = 0;"+
-                                    "for (var i = 0; i < nodeRanks.length; i++) {"+
-                                        "if(nodeRanks[i].rank > maxRank){"+
-                                            "result.value = nodeRanks[i].client;" +
-                                            "maxRank = nodeRanks[i].rank;" +
-                                        "}" +
-                                    "}" +
-                                "}" +
-                        "result;",
-                kafkaServerAddress, kafkaTopic);
-
-        leaderCandidate.start();
-    }
-    public static void main(String[] args){
-        LeaderCandidate.electLeader(args[0], args[1], args[2]);
+    public void run(){
+        this.start();
     }
 }

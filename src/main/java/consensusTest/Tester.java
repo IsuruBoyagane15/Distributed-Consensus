@@ -1,13 +1,13 @@
 package consensusTest;
 
 import distributedConsensus.ConsumerGenerator;
+import distributedConsensus.LeaderCandidate;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.UUID;
@@ -29,7 +29,7 @@ public class Tester {
     private String jarConfig;
     private final String kafkaTopic;
     private boolean terminate;
-    private HashMap<String, Process> activeProcesses;
+    private HashMap<String, LeaderCandidate> activeProcesses;
     private boolean maxProcessCountReached;
 
     public Tester(String jarLocation, String kafkaServerAddress, String kafkaTopic, int maxProcessCount){
@@ -39,7 +39,7 @@ public class Tester {
         this.kafkaConsumer = ConsumerGenerator.generateConsumer(kafkaServerAddress, kafkaTopic, "tester");
         this.jsContext = Context.create("js");
         this.immortalProcess = null;
-        this.activeProcesses = new HashMap<String, Process>();
+        this.activeProcesses = new HashMap<String, LeaderCandidate>();
         this.terminate = false;
         this.maxProcessCountReached = false;
         this.maxProcessCount = maxProcessCount;
@@ -110,13 +110,30 @@ public class Tester {
         String nodeId = UUID.randomUUID().toString();
         System.setProperty("id", nodeId);
         System.out.println(java.time.LocalTime.now() + " :: Id of the new process : " + nodeId);
-        ProcessBuilder processBuilder = new ProcessBuilder("java", "-jar", "-Did=" + nodeId, "-Dtest_run_id="+ System.getProperty("test_run_id"), "-Dpath="+System.getProperty("path"), jarLocation, nodeId, kafkaServerAddress, kafkaTopic);
-        try {
-            Process process = processBuilder.start();
-            this.activeProcesses.put(nodeId,process);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+        LeaderCandidate leaderCandidate = new LeaderCandidate(nodeId, "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};",
+
+                "if(Object.keys(nodeRanks).length != 0){" +
+                        "result.firstCandidate = nodeRanks[0].client;" +
+                        "}" +
+                        "if(result.timeout){" +
+                        "result.consensus=true;" +
+                        "var leader = null;"+
+                        "var maxRank = 0;"+
+                        "for (var i = 0; i < nodeRanks.length; i++) {"+
+                        "if(nodeRanks[i].rank > maxRank){"+
+                        "result.value = nodeRanks[i].client;" +
+                        "maxRank = nodeRanks[i].rank;" +
+                        "}" +
+                        "}" +
+                        "}" +
+                        "result;",
+                kafkaServerAddress, kafkaTopic);
+
+        Thread leaderCandidateThread = new Thread(leaderCandidate);
+        leaderCandidateThread.setName(nodeId + "_main");
+        leaderCandidateThread.start();
+        this.activeProcesses.put(nodeId, leaderCandidate);
     }
 
     public void killProcess(){
@@ -128,9 +145,12 @@ public class Tester {
             System.out.println(java.time.LocalTime.now() + " :: Can't kill " + nodeId);
         }
         else{
-            Process processToBeKilled = activeProcesses.get(nodeId);
-            processToBeKilled.destroy();
+            LeaderCandidate leaderCandidateToBeKilled = activeProcesses.get(nodeId);
             activeProcesses.remove(nodeId);
+            leaderCandidateToBeKilled.setTerminate(true);
+            if(activeProcesses.size() == 0){
+                this.terminate = true;
+            }
         }
     }
 
@@ -141,51 +161,10 @@ public class Tester {
         tester.startNewProcess(tester.jarConfig, tester.kafkaServerAddress, tester.kafkaTopic);
 
         try {
-            Thread.sleep((int)(1 + Math.random()*4)*1000);
+            Thread.sleep(10000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-        double factor = 0.25;
-        while(!tester.terminate){
-
-            double rand = Math.random();
-            if(rand> factor){
-                if(!tester.maxProcessCountReached){
-                    tester.startNewProcess(tester.jarConfig, tester.kafkaServerAddress, tester.kafkaTopic);
-                    if( tester.activeProcesses.size() == tester.maxProcessCount){
-                        tester.maxProcessCountReached = true;
-                        factor = 0.75;
-                    }
-                }
-                else{
-                    System.out.println(java.time.LocalTime.now() + " :: Maximum Process count: " + tester.activeProcesses.size() + " is achieved.No more processes will start");
-                }
-            }
-            else{
-                tester.killProcess();
-            }
-
-            int randWait = (int)(1 + Math.random()*4)*1000;
-            try {
-                Thread.sleep(randWait);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            int count = 0;
-            for (HashMap.Entry<String, Process> entry : tester.activeProcesses.entrySet()){
-                if(entry.getValue().isAlive()){
-                    count++;
-                }
-                else{
-                    tester.activeProcesses.remove(entry);
-                }
-            }
-            if (count == 0){
-                tester.terminate = true;
-            }
-
-            System.out.println(java.time.LocalTime.now() + " :: Number of active processes : " + count);
-        }
+        tester.killProcess();
     }
 }
