@@ -140,9 +140,16 @@ public class Tester {
         Object[] nodeIds = activeProcesses.keySet().toArray();
         Object nodeId = nodeIds[new Random().nextInt(nodeIds.length)];
         System.out.println(java.time.LocalTime.now() + " :: Id of the process to be killed  : " + nodeId);
+        System.out.println(java.time.LocalTime.now() + " :: Id of the immortal node : " + this.immortalProcess);
 
         if (nodeId.equals(this.immortalProcess)){
             System.out.println(java.time.LocalTime.now() + " :: Can't kill " + nodeId);
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            killProcess();
         }
         else{
             LeaderCandidate leaderCandidateToBeKilled = activeProcesses.get(nodeId);
@@ -161,7 +168,9 @@ public class Tester {
         tester.startNewProcess(tester.jarConfig, tester.kafkaServerAddress, tester.kafkaTopic);
 
         try {
-            Thread.sleep(10000);
+            int sleepTime = (int)(1 + Math.random()*50)*100;
+            System.out.println("sleep time :" + sleepTime);
+            Thread.sleep(sleepTime);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
