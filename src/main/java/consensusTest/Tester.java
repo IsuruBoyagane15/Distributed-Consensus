@@ -145,7 +145,7 @@ public class Tester {
         Object[] nodeIds = activeProcesses.keySet().toArray();
         Object nodeId = nodeIds[new Random().nextInt(nodeIds.length)];
         LOGGER.info("Id of the process to be killed  : " + nodeId);
-        LOGGER.info("Id of the immortal process : " + nodeId);
+        LOGGER.info("Id of the immortal process : " + this.immortalProcess);
 
         if (nodeId.equals(this.immortalProcess)){
             LOGGER.info("Can't kill " + nodeId + " at this moment");
