@@ -5,9 +5,11 @@ import distributedConsensus.LeaderCandidate;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.log4j.Logger;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.UUID;
@@ -17,6 +19,9 @@ public class Tester {
     static {
         System.setProperty("test_run_id", java.time.LocalDateTime.now().toString());
     }
+
+    private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
+
 
     private final String kafkaServerAddress;
     private final Context jsContext;
@@ -77,20 +82,20 @@ public class Tester {
                                     if (recordNumber > roundNumber){
                                         roundNumber = recordNumber;
                                         this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
-                                        System.out.println(java.time.LocalTime.now() + " :: Cannot kill " + this.immortalProcess);
+                                        LOGGER.info("Cannot kill " + this.immortalProcess + " for a while");
 
                                         runtimeJsCode = initialJsCose + recordMessage;
                                     }
                                     else{
                                         if (recordMessage.equals("result.timeout = true;")){
-                                            System.out.println(java.time.LocalTime.now() + " :: Can kill " + this.immortalProcess);
+                                            LOGGER.info(this.immortalProcess + " can be killed from now on");
                                             this.immortalProcess = null;
                                         }
                                         runtimeJsCode = runtimeJsCode + recordMessage;
                                         Value result = jsContext.eval("js",runtimeJsCode + evaluationJsCode);
                                         boolean leaderElected = result.getMember("consensus").asBoolean();
                                         if (leaderElected){
-                                            System.out.println(java.time.LocalTime.now() + " :: Leader for round number :" + roundNumber + " is " + result.getMember("value"));
+                                            LOGGER.info("Leader for round number :" + roundNumber + " is " + result.getMember("value"));
                                         }
                                     }
                                 }
@@ -98,7 +103,7 @@ public class Tester {
                         }
                     }
                 } catch(Exception exception) {
-                    System.out.println(exception);
+                    LOGGER.error(exception.getStackTrace());
                 }finally {
                     kafkaConsumer.close();
                 }
@@ -109,7 +114,7 @@ public class Tester {
     public void startNewProcess(String jarLocation, String kafkaServerAddress, String kafkaTopic){
         String nodeId = UUID.randomUUID().toString();
         System.setProperty("id", nodeId);
-        System.out.println(java.time.LocalTime.now() + " :: Id of the new process : " + nodeId);
+        LOGGER.info("Id of the new process : " + nodeId);
 
         LeaderCandidate leaderCandidate = new LeaderCandidate(nodeId, "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};",
 
@@ -139,11 +144,11 @@ public class Tester {
     public void killProcess(){
         Object[] nodeIds = activeProcesses.keySet().toArray();
         Object nodeId = nodeIds[new Random().nextInt(nodeIds.length)];
-        System.out.println(java.time.LocalTime.now() + " :: Id of the process to be killed  : " + nodeId);
-        System.out.println(java.time.LocalTime.now() + " :: Id of the immortal node : " + this.immortalProcess);
+        LOGGER.info("Id of the process to be killed  : " + nodeId);
+        LOGGER.info("Id of the immortal process : " + nodeId);
 
         if (nodeId.equals(this.immortalProcess)){
-            System.out.println(java.time.LocalTime.now() + " :: Can't kill " + nodeId);
+            LOGGER.info("Can't kill " + nodeId + " at this moment");
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
@@ -168,8 +173,7 @@ public class Tester {
         tester.startNewProcess(tester.jarConfig, tester.kafkaServerAddress, tester.kafkaTopic);
 
         try {
-            int sleepTime = (int)(1 + Math.random()*50)*100;
-            System.out.println("sleep time :" + sleepTime);
+            int sleepTime = (int)(1 + Math.random()*10)*1000;
             Thread.sleep(sleepTime);
         } catch (InterruptedException e) {
             e.printStackTrace();
