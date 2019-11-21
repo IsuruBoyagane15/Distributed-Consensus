@@ -9,7 +9,6 @@ import org.apache.log4j.Logger;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.UUID;
@@ -22,7 +21,6 @@ public class Tester {
 
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
 
-
     private final String kafkaServerAddress;
     private final Context jsContext;
     private final int maxProcessCount;
@@ -31,14 +29,12 @@ public class Tester {
     private String runtimeJsCode;
     private String immortalProcess;
     private KafkaConsumer<String, String> kafkaConsumer;
-    private String jarConfig;
     private final String kafkaTopic;
     private boolean terminate;
     private HashMap<String, LeaderCandidate> activeProcesses;
     private boolean maxProcessCountReached;
 
     public Tester(String jarLocation, String kafkaServerAddress, String kafkaTopic, int maxProcessCount){
-        this.jarConfig = jarLocation;
         this.kafkaTopic = kafkaTopic;
         this.kafkaServerAddress = kafkaServerAddress;
         this.kafkaConsumer = ConsumerGenerator.generateConsumer(kafkaServerAddress, kafkaTopic, "tester");
@@ -111,7 +107,7 @@ public class Tester {
             new Thread(consuming).start();
     }
 
-    public void startNewProcess(String jarLocation, String kafkaServerAddress, String kafkaTopic){
+    public void startNewProcess(String kafkaServerAddress, String kafkaTopic){
         String nodeId = UUID.randomUUID().toString();
         System.setProperty("id", nodeId);
         LOGGER.info("Id of the new process : " + nodeId);
@@ -170,7 +166,7 @@ public class Tester {
         Tester tester = new Tester(args[0], args[1], args[2], Integer.parseInt(args[3]));
         tester.read();
 
-        tester.startNewProcess(tester.jarConfig, tester.kafkaServerAddress, tester.kafkaTopic);
+        tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
 
         try {
             int sleepTime = (int)(1 + Math.random()*10)*1000;
@@ -178,6 +174,7 @@ public class Tester {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
         tester.killProcess();
     }
 }
