@@ -32,6 +32,10 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         this.terminate = false;
     }
 
+    public boolean isTerminate() {
+        return terminate;
+    }
+
     public void setTerminate(boolean terminate) {
         this.terminate = terminate;
     }

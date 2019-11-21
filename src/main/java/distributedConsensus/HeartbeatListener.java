@@ -19,7 +19,7 @@ public class HeartbeatListener extends Thread {
 
     public void run() {
         int i = 0;
-        while(i<=200){
+        while(i<=200 && !follower.isTerminate()){
             if (i == 200){
                 LOGGER.info(follower.getNodeId() + " Identified leader FAILURE");
                 follower.setElectedLeader(null);
