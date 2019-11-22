@@ -22,7 +22,6 @@ public class LockHandler extends ConsensusApplication{
 
     @Override
     public void onConsensus(Value value) {
-        DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         for (int i=0; i<10; i++){
             System.out.println(this.getNodeId() + " is holding lock.");
             try {
@@ -31,19 +30,18 @@ public class LockHandler extends ConsensusApplication{
                 e.printStackTrace();
             }
         }
-        dcf.writeACommand("lockStatuses.delete(\""+ this.getNodeId() + "\"" + ");");
+        this.distributedConsensus.writeACommand("lockStatuses.delete(\""+ this.getNodeId() + "\"" + ");");
         this.setTerminate(true);
     }
 
     public void start(){
-        DistributedConsensus distributedConsensus = DistributedConsensus.getDistributeConsensus(this);
         Runnable consuming = () -> {
             try {
                 while (!terminate) {
-                    ConsumerRecords<String, String> records = distributedConsensus.getMessages();
+                    ConsumerRecords<String, String> records = this.distributedConsensus.getMessages();
                     for (ConsumerRecord<String, String> record : records) {
                         System.out.println(record.value());
-                        Value result = distributedConsensus.evaluateJsCode(record.value());
+                        Value result = this.distributedConsensus.evaluateJsCode(record.value());
                         boolean consensusAchieved = this.checkConsensus(result);
                         if (consensusAchieved) {
                             this.onConsensus(result);
@@ -54,7 +52,7 @@ public class LockHandler extends ConsensusApplication{
                 LOGGER.error("Exception occurred :", exception);
                 System.out.println(exception);
             }finally {
-                distributedConsensus.closeConsumer();
+                this.distributedConsensus.closeConsumer();
             }
         };
         new Thread(consuming).start();
@@ -64,22 +62,17 @@ public class LockHandler extends ConsensusApplication{
         this.terminate = terminate;
     }
 
-    public static void handleLock(String nodeId, String kafkaServerAddress, String kafkaTopic){
-            LockHandler lockHandler = new LockHandler(nodeId, "var lockStatuses = new Set([]); result = false;",
-            "console.log(\"queue is :\" + Array.from(lockStatuses));" +
-                    "if(Array.from(lockStatuses)[0] === \"" + nodeId + "\"){" +
-                    "result = true;" +
-                    "}" +
-                    "result;", kafkaServerAddress, kafkaTopic);
+    public static void main(String[] args){
+        String nodeId = UUID.randomUUID().toString();
+        LockHandler lockHandler = new LockHandler(nodeId, "var lockStatuses = new Set([]); result = false;",
+                "console.log(\"queue is :\" + Array.from(lockStatuses));" +
+                        "if(Array.from(lockStatuses)[0] === \"" + nodeId + "\"){" +
+                        "result = true;" +
+                        "}" +
+                        "result;", args[0], args[1]);
 
         System.out.println("My id is " + lockHandler.getNodeId());
-        DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(lockHandler);
         lockHandler.start();
-        consensusFramework.writeACommand("lockStatuses.add(\""+  lockHandler.getNodeId() + "\"" + ");");
-    }
-
-    public static void main(String[] args){
-        String Id = UUID.randomUUID().toString();
-        LockHandler.handleLock(Id, args[0], args[1]);
+        lockHandler.distributedConsensus.writeACommand("lockStatuses.add(\""+  lockHandler.getNodeId() + "\"" + ");");
     }
 }

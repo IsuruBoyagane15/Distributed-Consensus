@@ -45,7 +45,6 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     }
 
     public void participate(int lastRoundNumber, String lastRoundJsCodes) {
-        DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
         int nodeRank = (int)(1 + Math.random()*100);
         this.roundNumber = lastRoundNumber;
         this.setRuntimeJsCode(initialJsCode);
@@ -53,13 +52,13 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         if (lastRoundJsCodes.equals("")){
             //EMPTY KAFKA LOG
             this.joiningState = roundStatuses.NEW;
-            consensusFramework.writeACommand(this.roundNumber+ ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
+            this.distributedConsensus.writeACommand(this.roundNumber+ ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                     nodeRank +"});}");
             LOGGER.info("Participated to NEW round :" + roundNumber + "; rank is " + nodeRank  );
         }
         else{
             //NON-EMPTY KAFKA LOG
-            Value latestRoundResult = consensusFramework.evaluateJsCode(lastRoundJsCodes);
+            Value latestRoundResult = this.distributedConsensus.evaluateJsCode(lastRoundJsCodes);
             boolean isRoundFinished = this.checkConsensus(latestRoundResult);
             if (isRoundFinished){
                 //NON-EMPTY KAFKA LOG WITH FINISHED ROUND
@@ -71,7 +70,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                 //NON-EMPTY KAFKA LOG WITH ONGOING ROUND
                 this.joiningState = roundStatuses.ONGOING;
                 setRuntimeJsCode(initialJsCode + lastRoundJsCodes);
-                consensusFramework.writeACommand(this.roundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
+                this.distributedConsensus.writeACommand(this.roundNumber + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                         nodeRank +"});}");
                 LOGGER.info("Participated to ONGOING round :" + roundNumber + "JsCode : " + lastRoundJsCodes + "; rank is " + nodeRank);
             }
@@ -80,7 +79,6 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
 
     //SHOULD NOT BE CALLED WHEN THERE IS AN IDENTIFIED LEADER
     public boolean onReceiving(Value result) {
-        DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         if(electedLeader == null){
             if (result.getMember("firstCandidate").toString().equals(getNodeId()) && !timeoutCounted){
                 long timeout = 500;
@@ -90,7 +88,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                     e.printStackTrace();
                 }
                 this.timeoutCounted = true;
-                dcf.writeACommand(this.roundNumber + ",result.timeout = true;");
+                this.distributedConsensus.writeACommand(this.roundNumber + ",result.timeout = true;");
                 LOGGER.info("Waited " + timeout + "ms and wrote \"result.timeout = true;\" to close the vote counting");
                 return false;
             }
@@ -127,12 +125,11 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
 
     public void start(){
 
-        DistributedConsensus distributedConsensus = DistributedConsensus.getDistributeConsensus(this);
-        final String rawString = distributedConsensus.generateUniqueKey();
+        final String rawString = this.distributedConsensus.generateUniqueKey();
         final String unique_round_key = DigestUtils.sha256Hex(rawString);
         final String checkRecord = "CHECK,"+ unique_round_key;
 
-        distributedConsensus.writeACommand(checkRecord);
+        this.distributedConsensus.writeACommand(checkRecord);
         LOGGER.info("Started; Id : " + getNodeId() + "; " + "check message : " + checkRecord);
 
         Runnable consuming = () -> {
@@ -143,7 +140,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
 
             try {
                 while (!this.terminate) {
-                    ConsumerRecords<String, String> records = distributedConsensus.getMessages();
+                    ConsumerRecords<String, String> records = this.distributedConsensus.getMessages();
                     for (ConsumerRecord<String, String> record : records) {
                         if (!correctRoundIdentified){
                             //IDENTIFYING THE ROUND
@@ -202,7 +199,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                     this.heartbeatListener.join();
                                     //CLEAN UPON THE FIRST (roundNumber + 1) RECORD
                                     this.cleanRound(recordRoundNumber);
-                                    Value result = distributedConsensus.evaluateJsCode(recordMessage);
+                                    Value result = this.distributedConsensus.evaluateJsCode(recordMessage);
                                     boolean consensusAchieved = this.onReceiving(result);
                                     if (consensusAchieved) {
                                         this.onConsensus(result);
@@ -235,7 +232,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                 else{
                                     if(this.roundNumber == recordRoundNumber){
                                         LOGGER.info("Evaluating records of current round with round number : " + recordRoundNumber);
-                                        Value result = distributedConsensus.evaluateJsCode(recordMessage);
+                                        Value result = this.distributedConsensus.evaluateJsCode(recordMessage);
                                         boolean consensusAchieved = this.onReceiving(result);
                                         if (consensusAchieved) {
                                             this.onConsensus(result);
@@ -256,7 +253,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
             } catch(Exception exception) {
                 LOGGER.error("Exception occurred :", exception);
             }finally {
-                distributedConsensus.closeConsumer();
+                this.distributedConsensus.closeConsumer();
             }
         };
         Thread consumer = new Thread(consuming);
@@ -267,8 +264,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     public void startHeartbeatSender(){
         LOGGER.info("Started sending HB");
         while (!this.terminate) {
-            DistributedConsensus consensusFramework = DistributedConsensus.getDistributeConsensus(this);
-            consensusFramework.writeACommand(roundNumber + ",ALIVE,"+ getNodeId());
+            this.distributedConsensus.writeACommand(roundNumber + ",ALIVE,"+ getNodeId());
             LOGGER.info("wrote HB");
             try {
                 Thread.sleep(100);
@@ -297,9 +293,8 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     }
 
     public void startNewRound(){
-        DistributedConsensus dcf = DistributedConsensus.getDistributeConsensus(this);
         int nodeRank = (int)(1 + Math.random()*100);
-        dcf.writeACommand((roundNumber+1) + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
+        this.distributedConsensus.writeACommand((roundNumber+1) + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                 nodeRank +"})};");
         LOGGER.info("Participated to new round "+ (roundNumber + 1) + "; my rank is " + nodeRank);
     }

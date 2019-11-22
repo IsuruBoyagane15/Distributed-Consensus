@@ -3,6 +3,7 @@ package distributedConsensus;
 import org.graalvm.polyglot.Value;
 
 public abstract class ConsensusApplication {
+    protected final DistributedConsensus distributedConsensus;
     private String nodeId, runtimeJsCode, evaluationJsCode, kafkaTopic, kafkaServerAddress;
 
     public ConsensusApplication(String nodeId, String runtimeJsCode, String evaluationJsCode, String kafkaServerAddress,
@@ -12,6 +13,7 @@ public abstract class ConsensusApplication {
         this.evaluationJsCode = evaluationJsCode;
         this.kafkaTopic = kafkaTopic;
         this.kafkaServerAddress = kafkaServerAddress;
+        this.distributedConsensus = new DistributedConsensus(this);
     }
 
     public abstract void start();
