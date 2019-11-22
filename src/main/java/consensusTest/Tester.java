@@ -34,13 +34,13 @@ public class Tester {
     private HashMap<String, LeaderCandidate> activeProcesses;
     private boolean maxProcessCountReached;
 
-    public Tester(String jarLocation, String kafkaServerAddress, String kafkaTopic, int maxProcessCount){
+    public Tester(String kafkaServerAddress, String kafkaTopic, int maxProcessCount){
         this.kafkaTopic = kafkaTopic;
         this.kafkaServerAddress = kafkaServerAddress;
         this.kafkaConsumer = ConsumerGenerator.generateConsumer(kafkaServerAddress, kafkaTopic, "tester");
         this.jsContext = Context.create("js");
         this.immortalProcess = null;
-        this.activeProcesses = new HashMap<String, LeaderCandidate>();
+        this.activeProcesses = new HashMap<>();
         this.terminate = false;
         this.maxProcessCountReached = false;
         this.maxProcessCount = maxProcessCount;
@@ -64,47 +64,49 @@ public class Tester {
     }
 
     public void read(){
-            Runnable consuming = () -> {
-                int roundNumber = -1;
-                try {
-                    while (!terminate) {
-                        ConsumerRecords<String, String> records = kafkaConsumer.poll(10);
-                        for (ConsumerRecord<String, String> record : records) {
-                            if (!record.value().startsWith("CHECK")){
-                                String[] recordContent = record.value().split(",", 2);
-                                int recordNumber = Integer.parseInt(recordContent[0]);
-                                String recordMessage = recordContent[1];
-                                if(!recordMessage.startsWith("ALIVE")){
-                                    if (recordNumber > roundNumber){
-                                        roundNumber = recordNumber;
-                                        this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
-                                        LOGGER.info("Cannot kill " + this.immortalProcess + " for a while");
+        Runnable consuming = () -> {
+            int roundNumber = -1;
+            try {
+                while (!terminate) {
+                    ConsumerRecords<String, String> records = kafkaConsumer.poll(10);
+                    for (ConsumerRecord<String, String> record : records) {
+                        if (!record.value().startsWith("CHECK")){
+                            String[] recordContent = record.value().split(",", 2);
+                            int recordNumber = Integer.parseInt(recordContent[0]);
+                            String recordMessage = recordContent[1];
+                            if(!recordMessage.startsWith("ALIVE")){
+                                if (recordNumber > roundNumber){
+                                    roundNumber = recordNumber;
+                                    this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
+                                    LOGGER.info("Cannot kill " + this.immortalProcess + " for a while");
 
-                                        runtimeJsCode = initialJsCose + recordMessage;
+                                    runtimeJsCode = initialJsCose + recordMessage;
+                                }
+                                else{
+                                    if (recordMessage.equals("result.timeout = true;")){
+                                        LOGGER.info(this.immortalProcess + " can be killed from now on");
+                                        this.immortalProcess = null;
                                     }
-                                    else{
-                                        if (recordMessage.equals("result.timeout = true;")){
-                                            LOGGER.info(this.immortalProcess + " can be killed from now on");
-                                            this.immortalProcess = null;
-                                        }
-                                        runtimeJsCode = runtimeJsCode + recordMessage;
-                                        Value result = jsContext.eval("js",runtimeJsCode + evaluationJsCode);
-                                        boolean leaderElected = result.getMember("consensus").asBoolean();
-                                        if (leaderElected){
-                                            LOGGER.info("Leader for round number :" + roundNumber + " is " + result.getMember("value"));
-                                        }
+                                    runtimeJsCode = runtimeJsCode + recordMessage;
+                                    Value result = jsContext.eval("js",runtimeJsCode + evaluationJsCode);
+                                    boolean leaderElected = result.getMember("consensus").asBoolean();
+                                    if (leaderElected){
+                                        LOGGER.info("Leader for round number :" + roundNumber + " is " + result.getMember("value"));
                                     }
                                 }
                             }
                         }
                     }
-                } catch(Exception exception) {
-                    LOGGER.error(exception.getStackTrace());
-                }finally {
-                    kafkaConsumer.close();
                 }
-            };
-            new Thread(consuming).start();
+            } catch(Exception exception) {
+                LOGGER.error(exception.getStackTrace());
+            }finally {
+                kafkaConsumer.close();
+            }
+        };
+        Thread consumer = new Thread(consuming);
+        consumer.setName("tester_consumer");
+        new Thread(consuming).start();
     }
 
     public void startNewProcess(String kafkaServerAddress, String kafkaTopic){
@@ -163,7 +165,8 @@ public class Tester {
     }
 
     public static void main(String[] args){
-        Tester tester = new Tester(args[0], args[1], args[2], Integer.parseInt(args[3]));
+        Thread.currentThread().setName("tester_main");
+        Tester tester = new Tester(args[0], args[1], Integer.parseInt(args[2]));
         tester.read();
 
         tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
@@ -175,6 +178,31 @@ public class Tester {
             e.printStackTrace();
         }
 
-        tester.killProcess();
+        double factor = 0.25;
+        while(!tester.terminate) {
+
+            double rand = Math.random();
+            if (rand > factor) {
+                if (!tester.maxProcessCountReached) {
+                    tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
+                    if (tester.activeProcesses.size() == tester.maxProcessCount) {
+                        tester.maxProcessCountReached = true;
+                        factor = 0.75;
+                    }
+                } else {
+                    System.out.println("Maximum Process count: " + tester.activeProcesses.size() + " is achieved.No more processes will start");
+                }
+            } else {
+                tester.killProcess();
+            }
+
+            int randWait = (int) (1 + Math.random() * 4) * 1000;
+            try {
+                Thread.sleep(randWait);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(tester.activeProcesses.size());
+        }
     }
 }
