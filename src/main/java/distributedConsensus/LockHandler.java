@@ -23,7 +23,7 @@ public class LockHandler extends ConsensusApplication{
     @Override
     public void onConsensus(Value value) {
         for (int i=0; i<10; i++){
-            System.out.println(this.getNodeId() + " is holding lock.");
+            LOGGER.info(this.getNodeId() + " is holding lock.");
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
@@ -40,7 +40,6 @@ public class LockHandler extends ConsensusApplication{
                 while (!terminate) {
                     ConsumerRecords<String, String> records = this.distributedConsensus.getMessages();
                     for (ConsumerRecord<String, String> record : records) {
-                        System.out.println(record.value());
                         Value result = this.distributedConsensus.evaluateJsCode(record.value());
                         boolean consensusAchieved = this.checkConsensus(result);
                         if (consensusAchieved) {
@@ -50,7 +49,6 @@ public class LockHandler extends ConsensusApplication{
                 }
             } catch(Exception exception) {
                 LOGGER.error("Exception occurred :", exception);
-                System.out.println(exception);
             }finally {
                 this.distributedConsensus.closeConsumer();
             }
@@ -71,7 +69,7 @@ public class LockHandler extends ConsensusApplication{
                         "}" +
                         "result;", args[0], args[1]);
 
-        System.out.println("My id is " + lockHandler.getNodeId());
+        LOGGER.info("My id is " + lockHandler.getNodeId());
         lockHandler.start();
         lockHandler.distributedConsensus.writeACommand("lockStatuses.add(\""+  lockHandler.getNodeId() + "\"" + ");");
     }
