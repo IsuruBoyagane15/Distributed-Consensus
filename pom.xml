@@ -31,7 +31,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        distributedConsensus/LeaderCandidate
+                                        consensusTest/Tester
                                     </mainClass>
                                 </manifest>
                             </archive>

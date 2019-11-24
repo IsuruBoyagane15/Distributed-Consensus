@@ -15,24 +15,15 @@ import java.util.UUID;
 
 public class Tester {
 
-    static {
-        System.setProperty("test_run_id", java.time.LocalDateTime.now().toString());
-    }
-
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
 
-    private final String kafkaServerAddress;
+    private final String kafkaServerAddress, kafkaTopic,  initialJsCode, evaluationJsCode;
     private final Context jsContext;
     private final int maxProcessCount;
-    private final String initialJsCose;
-    private final String evaluationJsCode;
-    private String runtimeJsCode;
-    private String immortalProcess;
+    private String runtimeJsCode, immortalProcess;
     private KafkaConsumer<String, String> kafkaConsumer;
-    private final String kafkaTopic;
-    private boolean terminate;
+    private boolean terminate, maxProcessCountReached;
     private HashMap<String, LeaderCandidate> activeProcesses;
-    private boolean maxProcessCountReached;
 
     public Tester(String kafkaServerAddress, String kafkaTopic, int maxProcessCount){
         this.kafkaTopic = kafkaTopic;
@@ -44,7 +35,7 @@ public class Tester {
         this.terminate = false;
         this.maxProcessCountReached = false;
         this.maxProcessCount = maxProcessCount;
-        this.initialJsCose = "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};";
+        this.initialJsCode = "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};";
         this.evaluationJsCode = "if(Object.keys(nodeRanks).length != 0){" +
                                     "result.firstCandidate = nodeRanks[0].client;" +
                         "}" +
@@ -60,7 +51,7 @@ public class Tester {
                                     "}" +
                                 "}" +
                         "result;";
-        this.runtimeJsCode = initialJsCose;
+        this.runtimeJsCode = initialJsCode;
     }
 
     public void read(){
@@ -79,8 +70,7 @@ public class Tester {
                                     roundNumber = recordNumber;
                                     this.immortalProcess = jsContext.eval("js","result = {timeout : false}; var nodeRanks = [];" + recordMessage + "nodeRanks[0].client;").toString();
                                     LOGGER.info("Cannot kill " + this.immortalProcess + " for a while");
-
-                                    runtimeJsCode = initialJsCose + recordMessage;
+                                    runtimeJsCode = initialJsCode + recordMessage;
                                 }
                                 else{
                                     if (recordMessage.equals("result.timeout = true;")){
@@ -114,23 +104,7 @@ public class Tester {
         System.setProperty("id", nodeId);
         LOGGER.info("Id of the new process : " + nodeId);
 
-        LeaderCandidate leaderCandidate = new LeaderCandidate(nodeId, "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};",
-
-                "if(Object.keys(nodeRanks).length != 0){" +
-                        "result.firstCandidate = nodeRanks[0].client;" +
-                        "}" +
-                        "if(result.timeout){" +
-                        "result.consensus=true;" +
-                        "var leader = null;"+
-                        "var maxRank = 0;"+
-                        "for (var i = 0; i < nodeRanks.length; i++) {"+
-                        "if(nodeRanks[i].rank > maxRank){"+
-                        "result.value = nodeRanks[i].client;" +
-                        "maxRank = nodeRanks[i].rank;" +
-                        "}" +
-                        "}" +
-                        "}" +
-                        "result;",
+        LeaderCandidate leaderCandidate = new LeaderCandidate(nodeId, initialJsCode, this.evaluationJsCode,
                 kafkaServerAddress, kafkaTopic);
 
         Thread leaderCandidateThread = new Thread(leaderCandidate);
@@ -142,9 +116,7 @@ public class Tester {
     public void killProcess(){
         Object[] nodeIds = activeProcesses.keySet().toArray();
         Object nodeId = nodeIds[new Random().nextInt(nodeIds.length)];
-        LOGGER.info("Id of the process to be killed  : " + nodeId);
-        LOGGER.info("Id of the immortal process : " + this.immortalProcess);
-
+        LOGGER.info("Id of the process to be killed  : " + nodeId + " :: " + "Id of the immortal process : " + this.immortalProcess);
         if (nodeId.equals(this.immortalProcess)){
             LOGGER.info("Can't kill " + nodeId + " at this moment");
             try {
@@ -153,11 +125,15 @@ public class Tester {
                 e.printStackTrace();
             }
             killProcess();
+            LOGGER.info("Trying to kill again");
+
         }
         else{
             LeaderCandidate leaderCandidateToBeKilled = activeProcesses.get(nodeId);
             activeProcesses.remove(nodeId);
             leaderCandidateToBeKilled.setTerminate(true);
+            LOGGER.info("killed " + nodeId);
+
             if(activeProcesses.size() == 0){
                 this.terminate = true;
             }
@@ -190,7 +166,7 @@ public class Tester {
                         factor = 0.75;
                     }
                 } else {
-                    System.out.println("Maximum Process count: " + tester.activeProcesses.size() + " is achieved.No more processes will start");
+                    LOGGER.info("Maximum Process count: " + tester.activeProcesses.size() + " is achieved.No more processes will start");
                 }
             } else {
                 tester.killProcess();
@@ -202,7 +178,8 @@ public class Tester {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            System.out.println(tester.activeProcesses.size());
+            System.out.println();
+            LOGGER.info("Number of leader candidates alive : " + tester.activeProcesses.size());
         }
     }
 }
