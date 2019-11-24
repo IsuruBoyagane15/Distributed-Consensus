@@ -178,7 +178,6 @@ public class Tester {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            System.out.println();
             LOGGER.info("Number of leader candidates alive : " + tester.activeProcesses.size());
         }
     }
