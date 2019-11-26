@@ -3,7 +3,7 @@ Distributed consensus algorithms using Kafka messaging.
 
 There are two consensus algorithms implemented here.
 
-##Leader Election
+## Leader Election
 Leader election algorithm implemented here is an round based algorithm.
 A leader election round(round number = n) is a set of state changes written to Kafka to elect one leader.
 After that leader died a new leader election round(round number = n+1) is started.
@@ -15,7 +15,7 @@ Tester will start/kill leader candidate threads until a given maximum number of 
 After achieving the maximum number Tester will only kill leader candidate threads.
 When the number of active leader candidate threads is zero test run is finished.
 
-###Usage
+### Usage
 
 1. Build Tester using *mvn clean install*
 
@@ -30,7 +30,7 @@ When the number of active leader candidate threads is zero test run is finished.
     
     ex: _java -Dpath=/home/JohnDoe/test0.log -jar Tester.jar localhost:9092 election 50_
 
-##Distribute Lock
+## Distribute Lock
 Distributed Lock algorithm implemented here has no rounds. 
 In distributed lock algorithm the complete kafka log contains events of same algorithm execution.
 Therefore no need of separating rounds in the Kafka log (Here, Kafka entire log can be considered as a single round).
