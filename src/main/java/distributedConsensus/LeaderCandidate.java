@@ -123,7 +123,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         return result.getMember("consensus").asBoolean();
     }
 
-    public void start(){
+    public void run(){
 
         final String rawString = this.distributedConsensus.generateUniqueKey();
         final String unique_round_key = DigestUtils.sha256Hex(rawString);
@@ -132,73 +132,105 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         this.distributedConsensus.writeACommand(checkRecord);
         LOGGER.info("Started; Id : " + getNodeId() + "; " + "check message : " + checkRecord);
 
-        Runnable consuming = () -> {
-            boolean correctRoundIdentified = false;
+        boolean correctRoundIdentified = false;
 
-            String latestRoundsJsCode = "";
-            int latestRoundNumber = 0;
+        String latestRoundsJsCode = "";
+        int latestRoundNumber = 0;
 
-            try {
-                while (!this.terminate) {
-                    ConsumerRecords<String, String> records = this.distributedConsensus.getMessages();
-                    for (ConsumerRecord<String, String> record : records) {
-                        if (!correctRoundIdentified){
-                            //IDENTIFYING THE ROUND
-                            if (record.value().equals(checkRecord)) {
-                                //TAKE DECISION ON ROUND STATUS BASED ON COLLECTED LAST ROUND CODES AND PARTICIPATE
+        try {
+            while (!this.terminate) {
+                ConsumerRecords<String, String> records = this.distributedConsensus.getMessages();
+                for (ConsumerRecord<String, String> record : records) {
+                    if (!correctRoundIdentified){
+                        //IDENTIFYING THE ROUND
+                        if (record.value().equals(checkRecord)) {
+                            //TAKE DECISION ON ROUND STATUS BASED ON COLLECTED LAST ROUND CODES AND PARTICIPATE
 
-                                LOGGER.info("Found check record : " + checkRecord);
-                                this.participate(latestRoundNumber,latestRoundsJsCode);
-                                correctRoundIdentified = true;
+                            LOGGER.info("Found check record : " + checkRecord);
+                            this.participate(latestRoundNumber,latestRoundsJsCode);
+                            correctRoundIdentified = true;
 
-                            }
-                            else if (!record.value().startsWith("CHECK,")){ //A NODE ONLY CONSIDER IT'S CHECK RECORD
-                                //COLLECT MOST RECENT ROUND'S CODE
-                                String[] recordContent = record.value().split(",", 2);
-                                int recordRoundNumber = Integer.parseInt(recordContent[0]);
-                                String recordMessage = recordContent[1]; //ALIVE or clean JS
+                        }
+                        else if (!record.value().startsWith("CHECK,")){ //A NODE ONLY CONSIDER IT'S CHECK RECORD
+                            //COLLECT MOST RECENT ROUND'S CODE
+                            String[] recordContent = record.value().split(",", 2);
+                            int recordRoundNumber = Integer.parseInt(recordContent[0]);
+                            String recordMessage = recordContent[1]; //ALIVE or clean JS
 
-                                if (!recordMessage.startsWith("ALIVE")){
-                                    if (recordRoundNumber>latestRoundNumber){
-                                        //THERE IS A NEW ROUND IN KAFKA
-                                        LOGGER.info("Discard " + latestRoundNumber +", since there is a new round in kafka log before the check record");
-                                        latestRoundsJsCode = recordMessage;
-                                        latestRoundNumber = recordRoundNumber;
-                                    }
-                                    else if(recordRoundNumber==latestRoundNumber){
-                                        latestRoundsJsCode += recordMessage;
-                                    }
-                                    //RECORDS WITH ROUND NUMBERS LESS THAN latestRoundNumber CANNOT BE FOUND
+                            if (!recordMessage.startsWith("ALIVE")){
+                                if (recordRoundNumber>latestRoundNumber){
+                                    //THERE IS A NEW ROUND IN KAFKA
+                                    LOGGER.info("Discard " + latestRoundNumber +", since there is a new round in kafka log before the check record");
+                                    latestRoundsJsCode = recordMessage;
+                                    latestRoundNumber = recordRoundNumber;
                                 }
-                                //ALIVE RECORDS ARE NOT ADDED TO THE LATEST ROUND CODE
+                                else if(recordRoundNumber==latestRoundNumber){
+                                    latestRoundsJsCode += recordMessage;
+                                }
+                                //RECORDS WITH ROUND NUMBERS LESS THAN latestRoundNumber CANNOT BE FOUND
+                            }
+                            //ALIVE RECORDS ARE NOT ADDED TO THE LATEST ROUND CODE
+                        }
+                    }
+                    else if (!record.value().startsWith("CHECK,")){
+                        //EVALUATING RECORDS OF ROUND TO WHICH NODE PARTICIPATED
+                        String[] recordContent = record.value().split(",", 2);
+                        int recordRoundNumber = Integer.parseInt(recordContent[0]); //Round number written with the record
+                        String recordMessage = recordContent[1]; //ALIVE,nodeId or clean JS
+
+                        if (this.joiningState == roundStatuses.FINISHED){
+                            // NEWLY JOINED NODES WITH FINISHED STATE FIRST EXECUTE THIS
+                            if (recordRoundNumber == this.roundNumber){
+                                //RECORDS (HBs) WITH ROUND NUMBER AS proposedRoundNumber
+                                LOGGER.info("Got HB of FINISHED round");
+                                this.handleHeartbeat();
+                            }
+                            else if(recordRoundNumber == this.roundNumber + 1){
+                                //SOMEONE HAS TIMEOUT BEFORE THIS NODE
+                                LOGGER.info("Got new round message while in FINISHED state");
+                                this.heartbeatListener.setLateToTimeout(true);
+                                if (this.heartbeatListener.isAlive()){
+                                    //TERMINATE LISTENER STARTED FOR FINISHED, TO MOVE TO NEW ROUND
+                                    LOGGER.info("Late to timeout the round " + this.roundNumber);
+                                    this.heartbeatListener.interrupt();
+                                }
+                                //WAIT UNTIL LISTENER IS FINISHED
+                                this.heartbeatListener.join();
+                                //CLEAN UPON THE FIRST (roundNumber + 1) RECORD
+                                this.cleanRound(recordRoundNumber);
+                                Value result = this.distributedConsensus.evaluateJsCode(recordMessage);
+                                boolean consensusAchieved = this.onReceiving(result);
+                                if (consensusAchieved) {
+                                    this.onConsensus(result);
+                                }
+                                else{
+                                    LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
+                                }
+                            }
+                            else{
+                                LOGGER.error("Record with wrong round number while in FINISHED state");
                             }
                         }
-                        else if (!record.value().startsWith("CHECK,")){
-                            //EVALUATING RECORDS OF ROUND TO WHICH NODE PARTICIPATED
-                            String[] recordContent = record.value().split(",", 2);
-                            int recordRoundNumber = Integer.parseInt(recordContent[0]); //Round number written with the record
-                            String recordMessage = recordContent[1]; //ALIVE,nodeId or clean JS
-
-                            if (this.joiningState == roundStatuses.FINISHED){
-                                // NEWLY JOINED NODES WITH FINISHED STATE FIRST EXECUTE THIS
-                                if (recordRoundNumber == this.roundNumber){
-                                    //RECORDS (HBs) WITH ROUND NUMBER AS proposedRoundNumber
-                                    LOGGER.info("Got HB of FINISHED round");
+                        else{
+                            //NON-FINISHED STATE NODES IN ANY ROUND
+                            if (recordRoundNumber == roundNumber + 1){
+                                //CLEAN ALL ROUND RELATED DATA IN CONSENSUS APPLICATION WHEN THE FIRST MESSAGE TO LATEST ROUND COMES
+                                this.heartbeatListener.join();
+                                this.cleanRound(recordRoundNumber); //SETS THE ROUND NUMBER TO MEW RECORDS ROUND NUMBERS
+                            }
+                            if(recordMessage.startsWith("ALIVE")){
+                                if (this.roundNumber == recordRoundNumber){
                                     this.handleHeartbeat();
+                                    LOGGER.info("Got HB");
                                 }
-                                else if(recordRoundNumber == this.roundNumber + 1){
-                                    //SOMEONE HAS TIMEOUT BEFORE THIS NODE
-                                    LOGGER.info("Got new round message while in FINISHED state");
-                                    this.heartbeatListener.setLateToTimeout(true);
-                                    if (this.heartbeatListener.isAlive()){
-                                        //TERMINATE LISTENER STARTED FOR FINISHED, TO MOVE TO NEW ROUND
-                                        LOGGER.info("Late to timeout the round " + this.roundNumber);
-                                        this.heartbeatListener.interrupt();
-                                    }
-                                    //WAIT UNTIL LISTENER IS FINISHED
-                                    this.heartbeatListener.join();
-                                    //CLEAN UPON THE FIRST (roundNumber + 1) RECORD
-                                    this.cleanRound(recordRoundNumber);
+                                else{
+                                    LOGGER.error(getNodeId() + " :: Error: ALIVE with wrong round number");
+                                    System.exit(-1);
+                                }
+                            }
+                            else{
+                                if(this.roundNumber == recordRoundNumber){
+                                    LOGGER.info("Evaluating records of current round with round number : " + recordRoundNumber);
                                     Value result = this.distributedConsensus.evaluateJsCode(recordMessage);
                                     boolean consensusAchieved = this.onReceiving(result);
                                     if (consensusAchieved) {
@@ -209,56 +241,19 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                     }
                                 }
                                 else{
-                                    LOGGER.error("Record with wrong round number while in FINISHED state");
-                                }
-                            }
-                            else{
-                                //NON-FINISHED STATE NODES IN ANY ROUND
-                                if (recordRoundNumber == roundNumber + 1){
-                                    //CLEAN ALL ROUND RELATED DATA IN CONSENSUS APPLICATION WHEN THE FIRST MESSAGE TO LATEST ROUND COMES
-                                    this.heartbeatListener.join();
-                                    this.cleanRound(recordRoundNumber); //SETS THE ROUND NUMBER TO MEW RECORDS ROUND NUMBERS
-                                }
-                                if(recordMessage.startsWith("ALIVE")){
-                                    if (this.roundNumber == recordRoundNumber){
-                                        this.handleHeartbeat();
-                                        LOGGER.info("Got HB");
-                                    }
-                                    else{
-                                        LOGGER.error(getNodeId() + " :: Error: ALIVE with wrong round number");
-                                        System.exit(-1);
-                                    }
-                                }
-                                else{
-                                    if(this.roundNumber == recordRoundNumber){
-                                        LOGGER.info("Evaluating records of current round with round number : " + recordRoundNumber);
-                                        Value result = this.distributedConsensus.evaluateJsCode(recordMessage);
-                                        boolean consensusAchieved = this.onReceiving(result);
-                                        if (consensusAchieved) {
-                                            this.onConsensus(result);
-                                        }
-                                        else{
-                                            LOGGER.info("Leader for " + this.roundNumber +  " is not elected yet");
-                                        }
-                                    }
-                                    else{
-                                        LOGGER.error("Error: Js record with wrong round number");
-                                        System.exit(-1);
-                                    }
+                                    LOGGER.error("Error: Js record with wrong round number");
+                                    System.exit(-1);
                                 }
                             }
                         }
                     }
                 }
-            } catch(Exception exception) {
-                LOGGER.error("Exception occurred :", exception);
-            }finally {
-                this.distributedConsensus.closeConsumer();
             }
-        };
-        Thread consumer = new Thread(consuming);
-        consumer.setName(getNodeId() + "_consumer");
-        consumer.start();
+        } catch(Exception exception) {
+            LOGGER.error("Exception occurred :", exception);
+        }finally {
+            this.distributedConsensus.closeConsumer();
+        }
     }
 
     public void startHeartbeatSender(){
@@ -297,9 +292,5 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         this.distributedConsensus.writeACommand((roundNumber+1) + ",if(!result.timeout){nodeRanks.push({client:\""+ getNodeId() + "\",rank:" +
                 nodeRank +"})};");
         LOGGER.info("Participated to new round "+ (roundNumber + 1) + "; my rank is " + nodeRank);
-    }
-
-    public void run(){
-        this.start();
     }
 }

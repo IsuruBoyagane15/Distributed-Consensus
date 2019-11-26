@@ -16,8 +16,6 @@ public abstract class ConsensusApplication {
         this.distributedConsensus = new DistributedConsensus(this);
     }
 
-    public abstract void start();
-
     public abstract boolean checkConsensus(Value result);
 
     public abstract void onConsensus(Value evaluationOutput);
