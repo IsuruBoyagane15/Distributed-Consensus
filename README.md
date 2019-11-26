@@ -1,16 +1,16 @@
 # distribute-consensus
-Distributed consensus algorithms using Kafka messaging. 
+Distributed consensus algorithms implemented using Kafka messaging. 
 
 There are two consensus algorithms implemented here.
 
 ## Leader Election
 Leader election algorithm implemented here is an round based algorithm.
-A leader election round(round number = n) is a set of state changes written to Kafka to elect one leader.
-After that leader died a new leader election round(round number = n+1) is started.
-The separation of rounds in the Kafka log is done using these integer round numbers.
-Kafka records with same round number are the events happened in that round.
+A round (round number = n) in leader election contains the set of state transitions happen while electing a single leader and until the failure of the leader.
+After that leader is dead a new leader election round(round number = n+1) is started.
+The separation of rounds' records in the Kafka log is done using the round numbers.
+Kafka records with same round number are the state transitions happened in that round.
 
-Tester is implemented to start/kill new leader candidates(threads) randomly. 
+Tester is implemented to start/kill new leader candidates(as threads) randomly. 
 Tester will start/kill leader candidate threads until a given maximum number of leader candidate threads are created.
 After achieving the maximum number Tester will only kill leader candidate threads.
 When the number of active leader candidate threads is zero test run is finished.
@@ -30,7 +30,7 @@ When the number of active leader candidate threads is zero test run is finished.
     
     ex: _java -Dpath=/home/JohnDoe/test0.log -jar Tester.jar localhost:9092 election 50_
 
-## Distribute Lock
+## Distributed Lock
 Distributed Lock algorithm implemented here has no rounds. 
-In distributed lock algorithm the complete kafka log contains events of same algorithm execution.
-Therefore no need of separating rounds in the Kafka log (Here, Kafka entire log can be considered as a single round).
+In distributed lock algorithm the entire kafka log contains events of same algorithm execution.
+Therefore no need of separating rounds in the Kafka log (Here, Kafka log can be considered as a single round).
