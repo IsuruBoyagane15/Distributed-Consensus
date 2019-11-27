@@ -26,7 +26,7 @@ When the number of active leader candidate threads is zero test run is finished.
 
 4. Run the Jar  giving location to save the log, Kafka server address, kafka topic and maximum number of leader candidate threads to run.
 
-    __java -Dpath=<_locatoin to save the log file_> -jar <_location to the jar built in 3._> <_kafka server address_> <_kafka topic_> <_maximum leader candidate thread count_>__
+    __java -Dpath=<_locatoin to save the log file_> -jar <_location to the jar built in 1._> <_kafka server address_> <_kafka topic_> <_maximum leader candidate thread count_>__
     
     ex: _java -Dpath=/home/JohnDoe/test0.log -jar Tester.jar localhost:9092 election 50_
 
