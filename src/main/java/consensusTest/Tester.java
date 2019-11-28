@@ -147,7 +147,7 @@ public class Tester {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            killProcess();
+//            killProcess();
         }
         else{
             LeaderCandidate leaderCandidateToBeKilled = activeProcesses.get(nodeId);
@@ -155,49 +155,53 @@ public class Tester {
             leaderCandidateToBeKilled.setTerminate(true);
             LOGGER.info("Killed " + nodeId);
 
-            if(activeProcesses.size() == 0){
-                this.terminate = true;
-            }
+//            if(activeProcesses.size() == 0){
+//                this.terminate = true;
+//            }
         }
     }
 
     /**
-     * Randomly start/kill LeaderCandidate threads until number of LeaderCandidate threads
-     * equals maxProcessCount.
-     * Only Kill LeaderCandidate threads after reaching maxProcessCount
+     * Start n threads.
+     * Randomly start/kill threads maintaining at least n*0.8 threads and at most n*1.2 in the election.
+     * Continue step 2 for testTime time period.
+     * Kill all the remaining threads to finish the test run.
      *
-     * @param args kafkaServerAddress, KafkaTopic, maxProcessCount
+     * @param args kafkaServerAddress, KafkaTopic, maxProcessCount testTime
      */
     public static void main(String[] args){
         Thread.currentThread().setName("tester_main");
+        int testSeconds = Integer.parseInt(args[3]);
         Tester tester = new Tester(args[0], args[1], Integer.parseInt(args[2]));
         tester.read();
 
-        tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
-
-        try {
-            int sleepTime = (int)(1 + Math.random()*10)*1000;
-            Thread.sleep(sleepTime);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        for (int i = 0; i < tester.maxProcessCount*0.8; i++){
+            tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
-        double factor = 0.25;
-        while(!tester.terminate) {
-
-            double rand = Math.random();
-            if (rand > factor) {
-                if (!tester.maxProcessCountReached) {
+        long startSeconds = System.currentTimeMillis();
+        while(System.currentTimeMillis() - startSeconds <= testSeconds*1000) {
+            double random = Math.random();
+            if (random > 0.5) {
+                if (tester.activeProcesses.size() < tester.maxProcessCount*1.2) {
                     tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
-                    if (tester.activeProcesses.size() == tester.maxProcessCount) {
-                        tester.maxProcessCountReached = true;
-                        factor = 1;
-                    }
-                } else {
-                    LOGGER.info("Maximum Process count: " + tester.activeProcesses.size() + " is achieved.No more processes will start");
                 }
-            } else {
-                tester.killProcess();
+                else{
+                    tester.killProcess();
+                }
+            }
+            else {
+                if (tester.activeProcesses.size() > tester.maxProcessCount*0.8){
+                    tester.killProcess();
+                }
+                else{
+                    tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
+                }
             }
             LOGGER.info("Number of leader candidates alive : " + tester.activeProcesses.size());
 
@@ -208,5 +212,13 @@ public class Tester {
                 e.printStackTrace();
             }
         }
+        LOGGER.info("TestTime is out. Will kill all the threads and finish the test run");
+
+        while(tester.activeProcesses.size() > 0){
+            tester.killProcess();
+        }
+        tester.terminate = true;
+        LOGGER.info("Test run is finished successfully");
+
     }
 }
