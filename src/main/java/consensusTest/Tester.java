@@ -177,7 +177,7 @@ public class Tester {
 
         for (int i = 0; i < tester.maxProcessCount*0.8; i++){
             tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
-            int randWait = (int) (1 + Math.random() * 4) * 1000;
+            int randWait = (int) (1 + Math.random() * 10) * 1000;
             try {
                 Thread.sleep(randWait);
             } catch (InterruptedException e) {
