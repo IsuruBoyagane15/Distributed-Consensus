@@ -10,7 +10,7 @@ After that leader is dead a new leader election round(round number = n+1) is sta
 The separation of rounds' records in the Kafka log is done using the round numbers.
 Kafka records with same round number are the state transitions happened in that round.
 
-###Testing Procedure
+### Testing Procedure
 **n** = given value for leader candidate thread count.
 **t** = given time period (in seconds).
 
