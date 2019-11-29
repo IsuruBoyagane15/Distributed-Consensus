@@ -14,7 +14,7 @@ Kafka records with same round number are the state transitions happened in that 
 **n** = given value for leader candidate thread count.
 **t** = given time period (in seconds).
 
-- Tester Starts given number(**n**) of leader candidate threads.
+- Tester Starts leader candidate threads until (**n**) threads have been started. (with random time waits between thread starts)  
 - Randomly start/kill threads for **t** time maintaining at least **n**\*0.8 number of threads 
 and at most **n***1.2 
 number of threads in the election.
