@@ -36,7 +36,7 @@ public class DistributedConsensus{
      * @return collection of ConsumerRecords
      */
     public ConsumerRecords<String, String> getMessages(){
-        return  this.kafkaConsumer.poll(10);
+        return  this.kafkaConsumer.poll(500);
     }
 
     /**
