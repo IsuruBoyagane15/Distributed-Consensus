@@ -22,10 +22,9 @@ public class Tester {
 
     private final String kafkaServerAddress, kafkaTopic,  initialJsCode, evaluationJsCode;
     private final Context jsContext;
-    private final int maxProcessCount;
     private String runtimeJsCode, immortalProcess;
     private KafkaConsumer<String, String> kafkaConsumer;
-    private boolean terminate, maxProcessCountReached;
+    private boolean terminate; //, maxProcessCountReached;
     private HashMap<String, LeaderCandidate> activeProcesses;
 
     /**
@@ -33,9 +32,8 @@ public class Tester {
      *
      * @param kafkaServerAddress URL of Kafka server
      * @param kafkaTopic Kafka topic which LeaderCandidates communicate through
-     * @param maxProcessCount Upper bound for number of parallel LeaderCandidate
      */
-    public Tester(String kafkaServerAddress, String kafkaTopic, int maxProcessCount){
+    public Tester(String kafkaServerAddress, String kafkaTopic){ //, int maxProcessCount
         this.kafkaTopic = kafkaTopic;
         this.kafkaServerAddress = kafkaServerAddress;
         this.kafkaConsumer = ConsumerGenerator.generateConsumer(kafkaServerAddress, kafkaTopic, "tester");
@@ -43,8 +41,6 @@ public class Tester {
         this.immortalProcess = null;
         this.activeProcesses = new HashMap<>();
         this.terminate = false;
-        this.maxProcessCountReached = false;
-        this.maxProcessCount = maxProcessCount;
         this.initialJsCode = "var nodeRanks = [];result = {consensus:false, value:null, firstCandidate : null, timeout : false};";
         this.evaluationJsCode = "if(Object.keys(nodeRanks).length != 0){" +
                                     "result.firstCandidate = nodeRanks[0].client;" +
@@ -147,17 +143,12 @@ public class Tester {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-//            killProcess();
         }
         else{
             LeaderCandidate leaderCandidateToBeKilled = activeProcesses.get(nodeId);
             activeProcesses.remove(nodeId);
             leaderCandidateToBeKilled.setTerminate(true);
             LOGGER.info("Killed " + nodeId);
-
-//            if(activeProcesses.size() == 0){
-//                this.terminate = true;
-//            }
         }
     }
 
@@ -172,10 +163,11 @@ public class Tester {
     public static void main(String[] args){
         Thread.currentThread().setName("tester_main");
         int testSeconds = Integer.parseInt(args[3]);
-        Tester tester = new Tester(args[0], args[1], Integer.parseInt(args[2]));
+        int maxProcessCount = Integer.parseInt(args[2]);
+        Tester tester = new Tester(args[0], args[1]); //, Integer.parseInt(args[2])
         tester.read();
 
-        for (int i = 0; i < tester.maxProcessCount*0.8; i++){
+        for (int i = 0; i < maxProcessCount*0.8; i++){
             tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
             int randWait = (int) (1 + Math.random() * 10) * 1000;
             try {
@@ -189,7 +181,7 @@ public class Tester {
         while(System.currentTimeMillis() - startSeconds <= testSeconds*1000) {
             double random = Math.random();
             if (random > 0.5) {
-                if (tester.activeProcesses.size() < tester.maxProcessCount*1.2) {
+                if (tester.activeProcesses.size() < maxProcessCount*1.2) {
                     tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
                 }
                 else{
@@ -197,7 +189,7 @@ public class Tester {
                 }
             }
             else {
-                if (tester.activeProcesses.size() > tester.maxProcessCount*0.8){
+                if (tester.activeProcesses.size() > maxProcessCount*0.8){
                     tester.killProcess();
                 }
                 else{
@@ -220,6 +212,5 @@ public class Tester {
         }
         tester.terminate = true;
         LOGGER.info("Test run is finished successfully");
-
     }
 }

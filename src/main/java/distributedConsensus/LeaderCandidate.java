@@ -299,7 +299,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                 }
                                 else{
                                     LOGGER.error(getNodeId() + " :: Error: ALIVE with wrong round number");
-                                    System.exit(-1);
+                                    throw new RuntimeException("Error: ALIVE with wrong round number");
                                 }
                             }
                             else{
@@ -317,7 +317,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                 }
                                 else{
                                     LOGGER.error("Error: Js record with wrong round number");
-                                    System.exit(-1);
+                                    throw new RuntimeException("Error: Js record with wrong round number");
                                 }
                             }
                         }
