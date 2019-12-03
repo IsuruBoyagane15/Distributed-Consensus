@@ -31,7 +31,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        consensusTest/Tester
+                                        consensusTest/LeaderElectionTester
                                     </mainClass>
                                 </manifest>
                             </archive>
