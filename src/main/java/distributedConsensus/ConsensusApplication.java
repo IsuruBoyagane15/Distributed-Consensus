@@ -8,7 +8,7 @@ import org.graalvm.polyglot.Value;
  */
 public abstract class ConsensusApplication {
     protected final DistributedConsensus distributedConsensus;
-    private String nodeId, runtimeJsCode, evaluationJsCode, kafkaTopic, kafkaServerAddress;
+    protected String nodeId, runtimeJsCode, evaluationJsCode, kafkaTopic, kafkaServerAddress;
 
     /**
      * Constructor

@@ -1,7 +1,7 @@
 package consensusTest;
 
 import distributedConsensus.ConsumerGenerator;
-import distributedConsensus.LeaderCandidate;
+import leaderElection.LeaderCandidate;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -16,7 +16,7 @@ import java.util.UUID;
 /**
  * External class to start/kill LeaderCandidate threads and monitor the execution of leader elections
  */
-public class Tester {
+public class LeaderElectoinTester {
 
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
 
@@ -33,7 +33,7 @@ public class Tester {
      * @param kafkaServerAddress URL of Kafka server
      * @param kafkaTopic Kafka topic which LeaderCandidates communicate through
      */
-    public Tester(String kafkaServerAddress, String kafkaTopic){ //, int maxProcessCount
+    public LeaderElectoinTester(String kafkaServerAddress, String kafkaTopic){ //, int maxProcessCount
         this.kafkaTopic = kafkaTopic;
         this.kafkaServerAddress = kafkaServerAddress;
         this.kafkaConsumer = ConsumerGenerator.generateConsumer(kafkaServerAddress, kafkaTopic, "tester");
@@ -164,11 +164,11 @@ public class Tester {
         Thread.currentThread().setName("tester_main");
         int testSeconds = Integer.parseInt(args[3]);
         int maxProcessCount = Integer.parseInt(args[2]);
-        Tester tester = new Tester(args[0], args[1]); //, Integer.parseInt(args[2])
-        tester.read();
+        LeaderElectoinTester leaderElectoinTester = new LeaderElectoinTester(args[0], args[1]);
+        leaderElectoinTester.read();
 
         for (int i = 0; i < maxProcessCount*0.8; i++){
-            tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
+            leaderElectoinTester.startNewProcess(leaderElectoinTester.kafkaServerAddress, leaderElectoinTester.kafkaTopic);
             int randWait = (int) (1 + Math.random() * 10) * 1000;
             try {
                 Thread.sleep(randWait);
@@ -181,22 +181,22 @@ public class Tester {
         while(System.currentTimeMillis() - startSeconds <= testSeconds*1000) {
             double random = Math.random();
             if (random > 0.5) {
-                if (tester.activeProcesses.size() < maxProcessCount*1.2) {
-                    tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
+                if (leaderElectoinTester.activeProcesses.size() < maxProcessCount*1.2) {
+                    leaderElectoinTester.startNewProcess(leaderElectoinTester.kafkaServerAddress, leaderElectoinTester.kafkaTopic);
                 }
                 else{
-                    tester.killProcess();
+                    leaderElectoinTester.killProcess();
                 }
             }
             else {
-                if (tester.activeProcesses.size() > maxProcessCount*0.8){
-                    tester.killProcess();
+                if (leaderElectoinTester.activeProcesses.size() > maxProcessCount*0.8){
+                    leaderElectoinTester.killProcess();
                 }
                 else{
-                    tester.startNewProcess(tester.kafkaServerAddress, tester.kafkaTopic);
+                    leaderElectoinTester.startNewProcess(leaderElectoinTester.kafkaServerAddress, leaderElectoinTester.kafkaTopic);
                 }
             }
-            LOGGER.info("Number of leader candidates alive : " + tester.activeProcesses.size());
+            LOGGER.info("Number of leader candidates alive : " + leaderElectoinTester.activeProcesses.size());
 
             int randWait = (int) (1 + Math.random() * 4) * 1000;
             try {
@@ -207,10 +207,10 @@ public class Tester {
         }
         LOGGER.info("TestTime is out. Will kill all the threads and finish the test run");
 
-        while(tester.activeProcesses.size() > 0){
-            tester.killProcess();
+        while(leaderElectoinTester.activeProcesses.size() > 0){
+            leaderElectoinTester.killProcess();
         }
-        tester.terminate = true;
+        leaderElectoinTester.terminate = true;
         LOGGER.info("Test run is finished successfully");
     }
 }

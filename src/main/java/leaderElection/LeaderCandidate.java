@@ -1,5 +1,6 @@
-package distributedConsensus;
+package leaderElection;
 
+import distributedConsensus.ConsensusApplication;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -83,13 +84,13 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     public void participate(int lastRoundNumber, String lastRoundJsCodes) {
         int nodeRank = (int)(1 + Math.random()*100);
         this.roundNumber = lastRoundNumber;
-        this.setRuntimeJsCode(initialJsCode);
+        runtimeJsCode = initialJsCode;
 
         if (lastRoundJsCodes.equals("")){
             //EMPTY KAFKA LOG
             this.joiningState = roundStatuses.NEW;
             this.distributedConsensus.writeACommand(this.roundNumber+ ",if(!result.timeout){" +
-                    "nodeRanks.push({client:\""+ getNodeId() + "\",rank:" + nodeRank +"});}");
+                    "nodeRanks.push({client:\""+ nodeId + "\",rank:" + nodeRank +"});}");
             LOGGER.info("Participated to NEW round :" + roundNumber + "; rank is " + nodeRank);
         }
         else{
@@ -106,9 +107,9 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
             else{
                 //NON-EMPTY KAFKA LOG WITH ONGOING ROUND
                 this.joiningState = roundStatuses.ONGOING;
-                setRuntimeJsCode(initialJsCode + lastRoundJsCodes);
+                runtimeJsCode = initialJsCode + lastRoundJsCodes;
                 this.distributedConsensus.writeACommand(this.roundNumber + ",if(!result.timeout)" +
-                        "{nodeRanks.push({client:\""+ getNodeId() + "\",rank:" + nodeRank +"});}");
+                        "{nodeRanks.push({client:\""+ nodeId + "\",rank:" + nodeRank +"});}");
                 LOGGER.info("Participated to ONGOING round :" + roundNumber + "JsCode : " +
                         lastRoundJsCodes + "; rank is " + nodeRank);
             }
@@ -125,7 +126,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
      */
     public boolean onReceiving(Value result) {
         if(electedLeader == null){
-            if (result.getMember("firstCandidate").toString().equals(getNodeId()) && !timeoutCounted){
+            if (result.getMember("firstCandidate").toString().equals(nodeId) && !timeoutCounted){
                 long timeout = 500;
                 try {
                     Thread.sleep(timeout);
@@ -156,8 +157,8 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     @Override
     public void onConsensus(Value value) {
         this.electedLeader = value.getMember("value").toString();
-        LOGGER.info(getNodeId() + " :: " + this.electedLeader + " is elected as the leader");
-        if (value.getMember("value").toString().equals(getNodeId())) {
+        LOGGER.info(nodeId + " :: " + this.electedLeader + " is elected as the leader");
+        if (value.getMember("value").toString().equals(nodeId)) {
             this.startHeartbeatSender();
         }
         else{
@@ -198,7 +199,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         final String checkRecord = "CHECK,"+ unique_round_key;
 
         this.distributedConsensus.writeACommand(checkRecord);
-        LOGGER.info("Started; Id : " + getNodeId() + "; " + "check message : " + checkRecord);
+        LOGGER.info("Started; Id : " + nodeId + "; " + "check message : " + checkRecord);
 
         boolean correctRoundIdentified = false;
 
@@ -298,7 +299,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                     LOGGER.info("Got HB");
                                 }
                                 else{
-                                    LOGGER.error(getNodeId() + " :: Error: ALIVE with wrong round number");
+                                    LOGGER.error(nodeId + " :: Error: ALIVE with wrong round number");
                                     throw new RuntimeException("Error: ALIVE with wrong round number");
                                 }
                             }
@@ -337,7 +338,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     public void startHeartbeatSender(){
         LOGGER.info("Started sending HB");
         while (!this.terminate) {
-            this.distributedConsensus.writeACommand(roundNumber + ",ALIVE,"+ getNodeId());
+            this.distributedConsensus.writeACommand(roundNumber + ",ALIVE,"+ nodeId);
             LOGGER.info("wrote HB");
             try {
                 Thread.sleep(100);
@@ -354,7 +355,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     public void startHeartbeatListener(){
         LOGGER.info("Started HB listener");
         this.heartbeatListener = new HeartbeatListener(this);
-        this.heartbeatListener.setName(getNodeId() + "_HBListener");
+        this.heartbeatListener.setName(nodeId + "_HBListener");
         this.heartbeatListener.start();
     }
 
@@ -364,7 +365,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
      */
     public void cleanRound(int roundNumber){
         this.roundNumber  = roundNumber; //SET THE ROUND NUMBER TO NEW RECORD ROUND NUMBER
-        this.setRuntimeJsCode(initialJsCode); // IN EACH NEW ROUND JS SHOULD BE RESET
+        runtimeJsCode = initialJsCode;
         this.joiningState = null; //SHOULD BE DONE SINCE "FINISHED" NODES GET INTERRUPTED BY
         // MESSAGES UNTIL THEY CALL THEIR FIRST startNewRound()
         this.timeoutCounted = false;
@@ -379,13 +380,13 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     public void startNewRound(){
         int nodeRank = (int)(1 + Math.random()*100);
         this.distributedConsensus.writeACommand((roundNumber+1) + ",if(!result.timeout){" +
-                "nodeRanks.push({client:\""+ getNodeId() + "\",rank:" + nodeRank +"})};");
+                "nodeRanks.push({client:\""+ nodeId + "\",rank:" + nodeRank +"})};");
         LOGGER.info("Participated to new round "+ (roundNumber + 1) + "; my rank is " + nodeRank);
     }
 
     /**
-     * Generate an uniques string
-     * @return an unique string
+     * Generate a uniques string
+     * @return a unique string
      */
     public String generateUniqueKey(){
         String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

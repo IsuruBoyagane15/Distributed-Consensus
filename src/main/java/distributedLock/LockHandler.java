@@ -1,5 +1,7 @@
-package distributedConsensus;
+package distributedLock;
 
+import distributedConsensus.ConsensusApplication;
+import leaderElection.LeaderCandidate;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.log4j.Logger;
@@ -10,7 +12,7 @@ import java.util.UUID;
  * java application trying to acquire distributed lock
  * Can acquire the lock, release the lock
  */
-public class LockHandler extends ConsensusApplication{
+public class LockHandler extends ConsensusApplication {
     private static final Logger LOGGER = Logger.getLogger(LeaderCandidate.class);
     private boolean terminate;
 
@@ -48,14 +50,14 @@ public class LockHandler extends ConsensusApplication{
     @Override
     public void onConsensus(Value value) {
         for (int i=0; i<10; i++){
-            LOGGER.info(this.getNodeId() + " is holding lock.");
+            LOGGER.info(nodeId + " is holding lock.");
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
-        this.distributedConsensus.writeACommand("lockStatuses.delete(\""+ this.getNodeId() + "\"" + ");");
+        this.distributedConsensus.writeACommand("lockStatuses.delete(\""+ nodeId + "\"" + ");");
         this.setTerminate(true);
     }
 
@@ -106,8 +108,8 @@ public class LockHandler extends ConsensusApplication{
                         "}" +
                         "result;", args[0], args[1]);
 
-        LOGGER.info("My id is " + lockHandler.getNodeId());
+        LOGGER.info("My id is " + lockHandler.nodeId);
         lockHandler.start();
-        lockHandler.distributedConsensus.writeACommand("lockStatuses.add(\""+  lockHandler.getNodeId() + "\"" + ");");
+        lockHandler.distributedConsensus.writeACommand("lockStatuses.add(\""+  lockHandler.nodeId + "\"" + ");");
     }
 }

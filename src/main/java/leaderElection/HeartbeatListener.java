@@ -1,4 +1,4 @@
-package distributedConsensus;
+package leaderElection;
 
 import org.apache.log4j.Logger;
 
