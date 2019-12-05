@@ -8,7 +8,7 @@ import org.graalvm.polyglot.Value;
 import org.apache.log4j.Logger;
 
 /**
- * Java instance participating to leader election
+ * Java node participating to leader election
  * Can become a leader or a follower
  */
 public class LeaderCandidate extends ConsensusApplication implements Runnable{
@@ -29,8 +29,8 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     /**
      * Constructor
      *
-     * @param nodeId unique id to identify the LeaderCandidate
-     * @param runtimeJsCode String containing Javascript records
+     * @param nodeId unique id to identify the LeaderCandidate node(thread)
+     * @param runtimeJsCode Javascript code in Java runtime which is updated upon processing a new Javascript command
      * @param evaluationJsCode Javascript logic to evaluate and elect a leader
      * @param kafkaServerAddress URL of Kafka server
      * @param kafkaTopic Kafka topic to subscribe to participate to leader election
@@ -42,7 +42,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         this.heartbeatListener = null;
         this.electedLeader = null;
         this.timeoutCounted = false; //FIRST LEADER CANDIDATE TO JOIN A ROUND WILL COUNT A
-        // TIMEOUT AND CLOSE THE VOTING BY WRITING TO KAFKA
+        // TIMEOUT AND CLOSE THE VOTING BY WRITING JAVASCRIPT COMMAND TO KAFKA
         this.joiningState = null; //STATE OF THE ROUND WHEN NODE PARTICIPATED;
         this.terminate = false;
     }
@@ -76,10 +76,10 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
 
     /**
      * Decide the state of Kafka log, round number of the round to participate
-     * Write record into Kafka based on the round state and number
+     * Write Javascript command based on the round state and number
      *
      * @param lastRoundNumber highest round number in the log before LeaderCandidates CHECK record
-     * @param lastRoundJsCodes code segment of round of lastRoundNumber
+     * @param lastRoundJsCodes code segment of round with (round number = lastRoundNumber) identified
      */
     public void participate(int lastRoundNumber, String lastRoundJsCodes) {
         int nodeRank = (int)(1 + Math.random()*100);
@@ -116,17 +116,17 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
         }
     }
 
-    //SHOULD NOT BE CALLED WHEN THERE IS AN IDENTIFIED LEADER
-
     /**
-     * Action on receiving evaluated result of a Kafka record
+     * Action upon receiving evaluated result of a Javascript command
      *
      * @param result  result of Javascript evaluation
      * @return whether consensus achieved or not
      */
-    public boolean onReceiving(Value result) {
+    public boolean onEvaluating(Value result) {
         if(electedLeader == null){
             if (result.getMember("firstCandidate").toString().equals(nodeId) && !timeoutCounted){
+                //FIRST CANDIDATE TO WRITE TO PARTICIPATE TO ELECTION WAITS timeout AND WRITE A
+                // COMMAND TO CLOSE VOTE COUNTING
                 long timeout = 500;
                 try {
                     Thread.sleep(timeout);
@@ -150,7 +150,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     }
 
     /**
-     * Action on electing a leader
+     * Action upon electing a leader
      *
      * @param value result of Javascript evaluation containing leaders id
      */
@@ -185,9 +185,8 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     }
 
     /**
-     * Run method of LeaderCandidate thread
      * Generate and write unique hash to Kafka
-     * Start consuming Kafka records
+     * Process commands read from Kafka
      * Extract highest rounds details written before the CHECK record
      * Call participate when CHECK record is found
      * Evaluate Javascript until a leader is elected
@@ -210,9 +209,10 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
             while (!this.terminate) {
                 ConsumerRecords<String, String> records = this.distributedConsensus.getMessages();
                 for (ConsumerRecord<String, String> record : records) {
+                    String command = record.value();
                     if (!correctRoundIdentified){
                         //IDENTIFYING THE ROUND
-                        if (record.value().equals(checkRecord)) {
+                        if (command.equals(checkRecord)) {
                             //TAKE DECISION ON ROUND STATUS BASED ON COLLECTED LAST ROUND CODES AND
                             // PARTICIPATE
                             LOGGER.info("Found check record : " + checkRecord);
@@ -220,10 +220,10 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                             correctRoundIdentified = true;
 
                         }
-                        else if (!record.value().startsWith("CHECK,")){ //A NODE ONLY CONSIDER IT'S
-                            // CHECK RECORD
+                        else if (!command.startsWith("CHECK,")){ //A NODE ONLY CONSIDER IT'S
+                                        // CHECK RECORD
                             //COLLECT MOST RECENT ROUND'S CODE
-                            String[] recordContent = record.value().split(",", 2);
+                            String[] recordContent = command.split(",", 2);
                             int recordRoundNumber = Integer.parseInt(recordContent[0]);
                             String recordMessage = recordContent[1]; //ALIVE or clean JS
 
@@ -244,9 +244,8 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                             //ALIVE RECORDS ARE NOT ADDED TO THE LATEST ROUND CODE
                         }
                     }
-                    else if (!record.value().startsWith("CHECK,")){
-                        //EVALUATING RECORDS OF ROUND TO WHICH NODE PARTICIPATED
-                        String[] recordContent = record.value().split(",", 2);
+                    else if (!command.startsWith("CHECK,")){
+                        String[] recordContent = command.split(",", 2);
                         int recordRoundNumber = Integer.parseInt(recordContent[0]);//Round number
                         // written with the record
                         String recordMessage = recordContent[1]; //ALIVE,nodeId or clean JS
@@ -272,7 +271,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                 //CLEAN UPON THE FIRST (roundNumber + 1) RECORD
                                 this.cleanRound(recordRoundNumber);
                                 Value result = this.distributedConsensus.evaluateJsCode(recordMessage);
-                                boolean consensusAchieved = this.onReceiving(result);
+                                boolean consensusAchieved = this.onEvaluating(result);
                                 if (consensusAchieved) {
                                     this.onConsensus(result);
                                 }
@@ -308,7 +307,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
                                     LOGGER.info("Evaluating records of current round with round number : " +
                                             recordRoundNumber);
                                     Value result = this.distributedConsensus.evaluateJsCode(recordMessage);
-                                    boolean consensusAchieved = this.onReceiving(result);
+                                    boolean consensusAchieved = this.onEvaluating(result);
                                     if (consensusAchieved) {
                                         this.onConsensus(result);
                                     }
@@ -333,7 +332,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     }
 
     /**
-     * Continuously write heartbeats
+     * If elected as leader, Continuously write heartbeats in 1/100s rate
      */
     public void startHeartbeatSender(){
         LOGGER.info("Started sending HB");
@@ -360,8 +359,8 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     }
 
     /**
-     * Clean details of previous round when higher round number record is found
-     * @param roundNumber round number to be set
+     * Clean details of previous round when starting a new round
+     * @param roundNumber round number to be set as the current round number
      */
     public void cleanRound(int roundNumber){
         this.roundNumber  = roundNumber; //SET THE ROUND NUMBER TO NEW RECORD ROUND NUMBER
@@ -377,7 +376,7 @@ public class LeaderCandidate extends ConsensusApplication implements Runnable{
     /**
      * Participate to new round
      */
-    public void startNewRound(){
+    public void participateToNewRound(){
         int nodeRank = (int)(1 + Math.random()*100);
         this.distributedConsensus.writeACommand((roundNumber+1) + ",if(!result.timeout){" +
                 "nodeRanks.push({client:\""+ nodeId + "\",rank:" + nodeRank +"})};");

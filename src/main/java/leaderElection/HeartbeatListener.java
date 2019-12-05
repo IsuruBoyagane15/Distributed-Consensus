@@ -15,7 +15,7 @@ public class HeartbeatListener extends Thread {
     /**
      * Constructor
      *
-     * @param follower LeaderCandidate which become a follower or joined to a FINISHED round
+     * @param follower LeaderCandidate which become a follower or joined when there is a FINISHED round in the Kafka log
      */
     public HeartbeatListener(LeaderCandidate follower){
         this.follower = follower;
@@ -35,7 +35,7 @@ public class HeartbeatListener extends Thread {
             if (i == 200){
                 LOGGER.info("Identified leader FAILURE");
                 follower.setElectedLeader(null);
-                follower.startNewRound();
+                follower.participateToNewRound();
                 break;
             }
             else{

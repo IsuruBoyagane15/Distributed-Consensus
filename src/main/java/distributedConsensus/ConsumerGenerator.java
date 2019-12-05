@@ -21,7 +21,7 @@ public class ConsumerGenerator {
 
         props.put("bootstrap.servers", kafkaServerAddress);
         props.put("group.id",consumerGroupId); //specifies consumer group - all the clients
-        // which want to come to consensus should be a member of same group
+                            // which want to come to consensus should be a member of same group
         props.put("enable.auto.commit","true"); //let consumer to commit most recently
                             // read offset to kafka
         props.put("auto.commit.interval.ms","1000");

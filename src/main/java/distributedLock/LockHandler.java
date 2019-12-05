@@ -9,7 +9,7 @@ import org.graalvm.polyglot.Value;
 import java.util.UUID;
 
 /**
- * java application trying to acquire distributed lock
+ * Java NODE trying to acquire distributed lock
  * Can acquire the lock, release the lock
  */
 public class LockHandler extends ConsensusApplication {
